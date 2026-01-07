@@ -30,6 +30,8 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "http://localhost:5175",
+      "https://admin-eta-topaz.vercel.app",
+      "https://frontend-pi-seven-84.vercel.app"
     ],
    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 
