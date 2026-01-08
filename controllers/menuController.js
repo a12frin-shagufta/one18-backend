@@ -77,22 +77,26 @@ export const addMenuItem = async (req, res) => {
 /* ======================
    GET MENU
 ====================== */
-
 export const getMenu = async (req, res) => {
   try {
-    const { branch } = req.query;
+    const { branch, festival } = req.query;
 
     const query = {
       inStock: true,
       $or: [
         { isAvailable: true },
-        { isAvailable: { $exists: false } }, // old items
+        { isAvailable: { $exists: false } },
       ],
     };
 
-    // ✅ ONLY apply branch if it is a VALID ObjectId
+    // ✅ branch filter (existing)
     if (branch && mongoose.Types.ObjectId.isValid(branch)) {
       query.branches = branch;
+    }
+
+    // ✅ festival filter (NEW, optional)
+    if (festival && mongoose.Types.ObjectId.isValid(festival)) {
+      query.festival = festival;
     }
 
     const menu = await MenuItem.find(query)
@@ -107,6 +111,7 @@ export const getMenu = async (req, res) => {
     res.status(500).json({ message: "Failed to load menu" });
   }
 };
+
 
 
 
