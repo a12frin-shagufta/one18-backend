@@ -1,4 +1,21 @@
 import Order from "../models/Order.js";
+import MenuItem from "../models/MenuItem.js";
+
+const HOURS_2 = 2;
+const DAYS_3 = 3;
+
+const addHours = (date, hours) => {
+  const d = new Date(date);
+  d.setHours(d.getHours() + hours);
+  return d;
+};
+
+const addDays = (date, days) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+};
+
 
 export const createOrder = async (req, res) => {
   try {
@@ -17,12 +34,69 @@ export const createOrder = async (req, res) => {
 } = req.body;
 
 
-    if (!orderType || !customer || !items?.length) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+   if (!orderType || !customer || !items?.length) {
+  return res.status(400).json({ message: "Missing required fields" });
+}
+
+const now = new Date();
+
+// 🟢 SAME-DAY ORDER
+if (orderType === "SAME_DAY") {
+  if (!pickupDate) {
+    return res.status(400).json({ message: "Pickup time required" });
+  }
+
+  const minAllowedTime = addHours(now, HOURS_2);
+
+  if (new Date(pickupDate) < minAllowedTime) {
+    return res.status(400).json({
+      message: "Same-day orders require at least 2 hours preparation",
+    });
+  }
+}
+
+// 🔵 PRE-ORDER
+if (orderType === "PREORDER") {
+  if (!pickupDate) {
+    return res.status(400).json({ message: "Pickup date required" });
+  }
+
+  const minAllowedDate = addDays(now, DAYS_3);
+
+  if (new Date(pickupDate) < minAllowedDate) {
+    return res.status(400).json({
+      message: "Pre-orders require minimum 3 working days",
+    });
+  }
+}
 
     if (!branch) {
   return res.status(400).json({ message: "Branch is required" });
+}
+
+// 🔒 VALIDATE ITEMS AGAINST ORDER TYPE
+for (const orderItem of items) {
+  const menuItem = await MenuItem.findById(orderItem.productId);
+
+  if (!menuItem) {
+    return res.status(400).json({
+      message: "Invalid product in order",
+    });
+  }
+
+  // ❌ Pre-order product ordered as WALK_IN
+  if (menuItem.preorder?.enabled && orderType === "WALK_IN") {
+    return res.status(400).json({
+      message: `${menuItem.name} is a pre-order item and cannot be ordered as same-day`,
+    });
+  }
+
+  // ❌ Same-day product ordered as PREORDER
+  if (!menuItem.preorder?.enabled && orderType === "PREORDER") {
+    return res.status(400).json({
+      message: `${menuItem.name} is a same-day item and cannot be pre-ordered`,
+    });
+  }
 }
 
    
