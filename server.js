@@ -14,6 +14,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import subcategoryRoutes from "./routes/subcategoryRoutes.js";
 import branchRoutes from "./routes/branchRoutes.js";
 import devRoutes from "./routes/devRoutes.js";
+import deliveryRoutes from "./routes/deliveryRoutes.js";
 
 
 
@@ -64,6 +65,7 @@ app.use("/api/subcategories", subcategoryRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/dev", devRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 /* =====================
    Health Check
