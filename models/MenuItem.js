@@ -20,6 +20,12 @@ const menuItemSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    servingInfo: {
+  type: String,
+  trim: true,
+  default: "",
+},
+
 
     festival: {
   type: mongoose.Schema.Types.ObjectId,

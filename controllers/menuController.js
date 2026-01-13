@@ -13,6 +13,7 @@ export const addMenuItem = async (req, res) => {
   const {
   name,
   description,
+  servingInfo, // ✅ NEW
   category,
   subcategory,
   variants,
@@ -22,6 +23,7 @@ export const addMenuItem = async (req, res) => {
   festival,
   inStock,
 } = req.body;
+
 
     if (!name || !category || !variants) {
       return res.status(400).json({ message: "Missing fields" });
@@ -53,6 +55,7 @@ export const addMenuItem = async (req, res) => {
   name: name.trim(),
   slug,
   description: description?.trim() || "",
+  servingInfo: servingInfo?.trim() || "", // ✅ NEW
   category,
   subcategory: subcategory || null,
   images: imageUrls,
@@ -62,8 +65,8 @@ export const addMenuItem = async (req, res) => {
   festival: festival || null,
   isBestSeller: isBestSeller === "true" || isBestSeller === true,
   inStock: inStock !== "false",
-  
 });
+
 
     res.json({ success: true, menuItem });
   } catch (err) {
@@ -123,18 +126,19 @@ export const updateMenuItem = async (req, res) => {
  const {
   name,
   description,
+  servingInfo, // ✅ NEW
   category,
   subcategory,
   variants,
-  branches,        // ✅ ADD
-  preorder,        // ✅ ADD
+  branches,
+  preorder,
   isBestSeller,
   removedImages,
   inStock,
   isAvailable,
   festival,
 } = req.body;
-;
+
 
  let removed = [];
 try {
@@ -180,20 +184,19 @@ const update = {
   name: name.trim(),
   slug: slugify(name, { lower: true, strict: true }),
   description: description?.trim() || "",
+  servingInfo: servingInfo?.trim() || "", // ✅ NEW
   category,
   subcategory,
   festival: festival && festival !== "null" ? festival : null,
-
   variants: parsedVariants,
-
-  branches: branches ? JSON.parse(branches) : item.branches,   // ✅
-  preorder: preorder ? JSON.parse(preorder) : item.preorder,   // ✅
-
+  branches: branches ? JSON.parse(branches) : item.branches,
+  preorder: preorder ? JSON.parse(preorder) : item.preorder,
   isBestSeller: isBestSeller === "true",
   inStock: inStock !== "false",
   isAvailable: isAvailable !== "false",
   images: finalImages,
 };
+
 
 
 
