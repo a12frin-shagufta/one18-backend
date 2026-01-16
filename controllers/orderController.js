@@ -1,6 +1,7 @@
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
 import moment from "moment-timezone";
+import Branch from "../models/Branch.js";
 
 const HOURS_2 = 2;
 const DAYS_3 = 3;
@@ -27,6 +28,19 @@ export const createOrder = async (req, res) => {
     if (!orderType || !fulfillmentType || !customer || !items?.length) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+
+    let branchData = null;
+
+if (branch) {
+  branchData = await Branch.findById(branch);
+}
+
+const bakeryPickupLocation = branchData
+  ? {
+      name: branchData.name,
+      address: branchData.address,
+    }
+  : null;
 
     if (!fulfillmentDate || !fulfillmentTime) {
       return res.status(400).json({ message: "Please select date and time" });
@@ -105,23 +119,26 @@ export const createOrder = async (req, res) => {
     }
 
     // ✅ CREATE ORDER
-    const order = await Order.create({
+   const order = await Order.create({
   branch: branch || null,
   orderType,
   fulfillmentType,
   fulfillmentDate,
   fulfillmentTime,
   customer,
+
+  // ✅ Always store bakery pickup location (for both delivery + pickup)
+  pickupLocation: bakeryPickupLocation,
+
   deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
-  pickupLocation: fulfillmentType === "pickup" ? pickupLocation : null,
+
   items,
   subtotal,
   deliveryFee,
   totalAmount,
-
-  // ✅ ADD THIS
   lalamoveStatus,
 });
+
 
 
     return res.status(201).json({ success: true, order });
