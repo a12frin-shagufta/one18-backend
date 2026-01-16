@@ -49,9 +49,13 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Customer details missing" });
     }
 
-    if (!customer.address || !customer.postalCode) {
-      return res.status(400).json({ message: "Address and postal code required" });
-    }
+   // ✅ DELIVERY needs address + postal
+if (fulfillmentType === "delivery") {
+  if (!customer.address || !customer.postalCode) {
+    return res.status(400).json({ message: "Address and postal code required" });
+  }
+}
+
 
     const now = new Date();
 
