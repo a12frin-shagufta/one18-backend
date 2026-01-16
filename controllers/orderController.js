@@ -36,6 +36,10 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Customer details missing" });
     }
 
+    const lalamoveStatus =
+  fulfillmentType === "pickup" ? "not_required" : "not_booked";
+
+
     // ✅ DELIVERY needs address + postal
     if (fulfillmentType === "delivery") {
       if (!customer.address || !customer.postalCode) {
@@ -55,15 +59,15 @@ export const createOrder = async (req, res) => {
     }
 
     // ✅ RULE 1: WALK_IN = same-day order must be at least 2 hours later
-    if (orderType === "WALK_IN") {
-      const minAllowedTime = nowSG.clone().add(HOURS_2, "hours");
+   if (orderType === "WALK_IN") {
+  const minAllowedTime = nowSG.clone().add(HOURS_2, "hours");
+  if (selectedDateTimeSG.isBefore(minAllowedTime)) {
+    return res.status(400).json({
+      message: "Same-day orders require at least 2 hours preparation",
+    });
+  }
+}
 
-      if (selectedDateTimeSG.isBefore(minAllowedTime)) {
-        return res.status(400).json({
-          message: "Same-day orders require at least 2 hours preparation",
-        });
-      }
-    }
 
     // ✅ RULE 2: PREORDER = minimum 3 days ahead (based on date only)
     if (orderType === "PREORDER") {
@@ -102,19 +106,23 @@ export const createOrder = async (req, res) => {
 
     // ✅ CREATE ORDER
     const order = await Order.create({
-      branch: branch || null,
-      orderType,
-      fulfillmentType,
-      fulfillmentDate,
-      fulfillmentTime,
-      customer,
-      deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
-      pickupLocation: fulfillmentType === "pickup" ? pickupLocation : null,
-      items,
-      subtotal,
-      deliveryFee,
-      totalAmount,
-    });
+  branch: branch || null,
+  orderType,
+  fulfillmentType,
+  fulfillmentDate,
+  fulfillmentTime,
+  customer,
+  deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
+  pickupLocation: fulfillmentType === "pickup" ? pickupLocation : null,
+  items,
+  subtotal,
+  deliveryFee,
+  totalAmount,
+
+  // ✅ ADD THIS
+  lalamoveStatus,
+});
+
 
     return res.status(201).json({ success: true, order });
   } catch (err) {

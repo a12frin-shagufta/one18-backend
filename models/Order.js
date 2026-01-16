@@ -74,6 +74,15 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "preparing", "ready", "completed", "cancelled"],
       default: "pending",
     },
+    lalamoveStatus: {
+  type: String,
+  enum: ["not_required", "not_booked", "booking_requested", "booked", "failed"],
+  default: "not_booked",
+},
+
+lalamoveBookingId: { type: String, default: null },
+lalamoveTrackingLink: { type: String, default: null },
+
   },
   { timestamps: true }
 );
