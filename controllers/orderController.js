@@ -16,110 +16,119 @@ const addDays = (date, days) => {
   return d;
 };
 
-
 export const createOrder = async (req, res) => {
   try {
     const {
-  branch,
-  orderType,
-  fulfillmentType,
-  pickupDate,
-  customer,
-  deliveryAddress,
-  pickupLocation,
-  items,
-  subtotal,
-  deliveryFee,
-  totalAmount,
-} = req.body;
+      branch,
+      orderType,
+      fulfillmentType,
 
+      fulfillmentDate,
+      fulfillmentTime,
 
-   if (!orderType || !customer || !items?.length) {
-  return res.status(400).json({ message: "Missing required fields" });
-}
+      customer,
+      deliveryAddress,
+      pickupLocation,
 
-const now = new Date();
+      items,
+      subtotal,
+      deliveryFee,
+      totalAmount,
+    } = req.body;
 
-// 🟢 SAME-DAY ORDER
-if (orderType === "SAME_DAY") {
-  if (!pickupDate) {
-    return res.status(400).json({ message: "Pickup time required" });
-  }
+    // ✅ BASIC VALIDATION
+    if (!orderType || !fulfillmentType || !customer || !items?.length) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
-  const minAllowedTime = addHours(now, HOURS_2);
+    if (!fulfillmentDate || !fulfillmentTime) {
+      return res.status(400).json({ message: "Please select date and time" });
+    }
 
-  if (new Date(pickupDate) < minAllowedTime) {
-    return res.status(400).json({
-      message: "Same-day orders require at least 2 hours preparation",
+    if (!customer.firstName || !customer.lastName || !customer.phone) {
+      return res.status(400).json({ message: "Customer details missing" });
+    }
+
+    if (!customer.address || !customer.postalCode) {
+      return res.status(400).json({ message: "Address and postal code required" });
+    }
+
+    const now = new Date();
+
+    // ✅ SAME-DAY ORDER VALIDATION
+    if (orderType === "WALK_IN") {
+      // if today order, keep your 2 hours validation (optional)
+      // you can skip this if you want
+      const selectedDateTime = new Date(`${fulfillmentDate}T${fulfillmentTime}:00`);
+
+      const minAllowedTime = addHours(now, HOURS_2);
+      if (selectedDateTime < minAllowedTime) {
+        return res.status(400).json({
+          message: "Same-day orders require at least 2 hours preparation",
+        });
+      }
+    }
+
+    // ✅ PRE-ORDER VALIDATION (3 days minimum)
+    if (orderType === "PREORDER") {
+      const selectedDate = new Date(`${fulfillmentDate}T00:00:00`);
+      const minAllowedDate = addDays(now, DAYS_3);
+
+      if (selectedDate < minAllowedDate) {
+        return res.status(400).json({
+          message: "Pre-orders require minimum 3 working days",
+        });
+      }
+    }
+
+    // ✅ VALIDATE ITEMS FROM DB
+    for (const orderItem of items) {
+      const menuItem = await MenuItem.findById(orderItem.productId);
+
+      if (!menuItem) {
+        return res.status(400).json({ message: "Invalid product in order" });
+      }
+
+      // ❌ preorder product ordered as WALK_IN
+      if (menuItem.preorder?.enabled && orderType === "WALK_IN") {
+        return res.status(400).json({
+          message: `${menuItem.name} is a pre-order item and cannot be ordered as same-day`,
+        });
+      }
+
+      // ❌ same-day product ordered as PREORDER
+      if (!menuItem.preorder?.enabled && orderType === "PREORDER") {
+        return res.status(400).json({
+          message: `${menuItem.name} is a same-day item and cannot be pre-ordered`,
+        });
+      }
+    }
+
+    // ✅ CREATE ORDER
+    const order = await Order.create({
+      branch: branch || null,
+      orderType,
+      fulfillmentType,
+
+      fulfillmentDate,
+      fulfillmentTime,
+
+      customer,
+
+      deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
+      pickupLocation: fulfillmentType === "pickup" ? pickupLocation : null,
+
+      items,
+      subtotal,
+      deliveryFee,
+      totalAmount,
     });
-  }
-}
-
-// 🔵 PRE-ORDER
-if (orderType === "PREORDER") {
-  if (!pickupDate) {
-    return res.status(400).json({ message: "Pickup date required" });
-  }
-
-  const minAllowedDate = addDays(now, DAYS_3);
-
-  if (new Date(pickupDate) < minAllowedDate) {
-    return res.status(400).json({
-      message: "Pre-orders require minimum 3 working days",
-    });
-  }
-}
-
-    if (!branch) {
-  return res.status(400).json({ message: "Branch is required" });
-}
-
-// 🔒 VALIDATE ITEMS AGAINST ORDER TYPE
-for (const orderItem of items) {
-  const menuItem = await MenuItem.findById(orderItem.productId);
-
-  if (!menuItem) {
-    return res.status(400).json({
-      message: "Invalid product in order",
-    });
-  }
-
-  // ❌ Pre-order product ordered as WALK_IN
-  if (menuItem.preorder?.enabled && orderType === "WALK_IN") {
-    return res.status(400).json({
-      message: `${menuItem.name} is a pre-order item and cannot be ordered as same-day`,
-    });
-  }
-
-  // ❌ Same-day product ordered as PREORDER
-  if (!menuItem.preorder?.enabled && orderType === "PREORDER") {
-    return res.status(400).json({
-      message: `${menuItem.name} is a same-day item and cannot be pre-ordered`,
-    });
-  }
-}
-
-   
-   const order = await Order.create({
-  branch,
-  orderType,
-  fulfillmentType,
-  pickupDate: orderType === "PREORDER" ? pickupDate : null,
-  customer,
-  deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
-  pickupLocation: fulfillmentType === "pickup" ? pickupLocation : null,
-  items,
-  subtotal,
-  deliveryFee,
-  totalAmount,
-});
 
     res.status(201).json({ success: true, order });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getAllOrders = async (req, res) => {
   try {
@@ -148,4 +157,3 @@ export const updateOrderStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
