@@ -1,20 +1,10 @@
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
+import moment from "moment-timezone";
 
 const HOURS_2 = 2;
 const DAYS_3 = 3;
-
-const addHours = (date, hours) => {
-  const d = new Date(date);
-  d.setHours(d.getHours() + hours);
-  return d;
-};
-
-const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-};
+const SG_TZ = "Asia/Singapore";
 
 export const createOrder = async (req, res) => {
   try {
@@ -22,14 +12,11 @@ export const createOrder = async (req, res) => {
       branch,
       orderType,
       fulfillmentType,
-
       fulfillmentDate,
       fulfillmentTime,
-
       customer,
       deliveryAddress,
       pickupLocation,
-
       items,
       subtotal,
       deliveryFee,
@@ -49,39 +36,41 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Customer details missing" });
     }
 
-   // ✅ DELIVERY needs address + postal
-if (fulfillmentType === "delivery") {
-  if (!customer.address || !customer.postalCode) {
-    return res.status(400).json({ message: "Address and postal code required" });
-  }
-}
-
-
-    const now = new Date();
-
-    // ✅ SAME-DAY ORDER VALIDATION
-    if (orderType === "WALK_IN") {
-      // if today order, keep your 2 hours validation (optional)
-      // you can skip this if you want
-      const selectedDate = new Date(`${fulfillmentDate}T00:00:00`);
-
-const minAllowedDate = addDays(new Date(), DAYS_3);
-minAllowedDate.setHours(0, 0, 0, 0); // ✅ remove time
-
-if (selectedDate < minAllowedDate) {
-  return res.status(400).json({
-    message: "Pre-orders require minimum 3 working days",
-  });
-}
-
+    // ✅ DELIVERY needs address + postal
+    if (fulfillmentType === "delivery") {
+      if (!customer.address || !customer.postalCode) {
+        return res.status(400).json({ message: "Address and postal code required" });
+      }
     }
 
-    // ✅ PRE-ORDER VALIDATION (3 days minimum)
-    if (orderType === "PREORDER") {
-      const selectedDate = new Date(`${fulfillmentDate}T00:00:00`);
-      const minAllowedDate = addDays(now, DAYS_3);
+    // ✅ NOW IN SINGAPORE TIME
+    const nowSG = moment().tz(SG_TZ);
 
-      if (selectedDate < minAllowedDate) {
+    // ✅ Selected datetime in SINGAPORE time
+    const selectedDateTimeSG = moment
+      .tz(`${fulfillmentDate} ${fulfillmentTime}`, "YYYY-MM-DD HH:mm", SG_TZ);
+
+    if (!selectedDateTimeSG.isValid()) {
+      return res.status(400).json({ message: "Invalid date/time format" });
+    }
+
+    // ✅ RULE 1: WALK_IN = same-day order must be at least 2 hours later
+    if (orderType === "WALK_IN") {
+      const minAllowedTime = nowSG.clone().add(HOURS_2, "hours");
+
+      if (selectedDateTimeSG.isBefore(minAllowedTime)) {
+        return res.status(400).json({
+          message: "Same-day orders require at least 2 hours preparation",
+        });
+      }
+    }
+
+    // ✅ RULE 2: PREORDER = minimum 3 days ahead (based on date only)
+    if (orderType === "PREORDER") {
+      const selectedDateOnly = moment.tz(fulfillmentDate, "YYYY-MM-DD", SG_TZ).startOf("day");
+      const minAllowedDate = nowSG.clone().add(DAYS_3, "days").startOf("day");
+
+      if (selectedDateOnly.isBefore(minAllowedDate)) {
         return res.status(400).json({
           message: "Pre-orders require minimum 3 working days",
         });
@@ -116,26 +105,23 @@ if (selectedDate < minAllowedDate) {
       branch: branch || null,
       orderType,
       fulfillmentType,
-
       fulfillmentDate,
       fulfillmentTime,
-
       customer,
-
       deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
       pickupLocation: fulfillmentType === "pickup" ? pickupLocation : null,
-
       items,
       subtotal,
       deliveryFee,
       totalAmount,
     });
 
-    res.status(201).json({ success: true, order });
+    return res.status(201).json({ success: true, order });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 };
+
 
 export const getAllOrders = async (req, res) => {
   try {
