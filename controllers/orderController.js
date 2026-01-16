@@ -63,14 +63,17 @@ if (fulfillmentType === "delivery") {
     if (orderType === "WALK_IN") {
       // if today order, keep your 2 hours validation (optional)
       // you can skip this if you want
-      const selectedDateTime = new Date(`${fulfillmentDate}T${fulfillmentTime}:00`);
+      const selectedDate = new Date(`${fulfillmentDate}T00:00:00`);
 
-      const minAllowedTime = addHours(now, HOURS_2);
-      if (selectedDateTime < minAllowedTime) {
-        return res.status(400).json({
-          message: "Same-day orders require at least 2 hours preparation",
-        });
-      }
+const minAllowedDate = addDays(new Date(), DAYS_3);
+minAllowedDate.setHours(0, 0, 0, 0); // ✅ remove time
+
+if (selectedDate < minAllowedDate) {
+  return res.status(400).json({
+    message: "Pre-orders require minimum 3 working days",
+  });
+}
+
     }
 
     // ✅ PRE-ORDER VALIDATION (3 days minimum)
