@@ -1,139 +1,46 @@
 import express from "express";
-import axios from "axios";
-import Branch from "../models/Branch.js";
 
 const router = express.Router();
 
-// ✅ Haversine distance formula (KM)
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const toRad = (v) => (v * Math.PI) / 180;
-  const R = 6371;
+// ✅ Far area prefixes (example)
+const FAR_PREFIXES = [
+  "46","47","48","49","50","51","52","53","54","55","56","57",
+  "60","61","62","63","64","65","66","67","68","69",
+  "70","71","72","73","74","75","76","77","78","79"
+];
 
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+function calculateDeliveryFee({ postalCode, subtotal }) {
+  if (!postalCode) return null;
 
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-// ✅ OneMap postal -> address + lat/lng
-async function getOneMapLocation(postalCode) {
   const cleanPostal = String(postalCode).trim();
 
-  const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${cleanPostal}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
+  // ✅ Must be 6 digit SG postal code
+  if (!/^\d{6}$/.test(cleanPostal)) return null;
 
-  const res = await axios.get(url);
-  const results = res.data?.results || [];
+  // ✅ Free delivery rule
+  if (Number(subtotal || 0) >= 180) return 0;
 
-  // ✅ Try exact match first
-  const match =
-    results.find((r) => String(r.POSTAL).trim() === cleanPostal) || results[0];
-
-  if (!match) return null;
-
-  return {
-    postalCode: String(match.POSTAL).trim(),
-    address: match.ADDRESS,
-    lat: Number(match.LATITUDE),
-    lng: Number(match.LONGITUDE),
-  };
+  const prefix = cleanPostal.slice(0, 2);
+  return FAR_PREFIXES.includes(prefix) ? 15 : 10;
 }
 
+router.post("/check", (req, res) => {
+  const { postalCode, subtotal } = req.body;
 
-// ✅ POST /api/delivery/check
-router.post("/check", async (req, res) => {
-  try {
-    const { postalCode, subtotal, branchId } = req.body;
-
-    // ✅ Required
-    if (!postalCode) {
-      return res.status(400).json({ message: "Postal code required" });
-    }
-
-    const cleanPostal = String(postalCode).trim();
-
-    // ✅ Singapore format check
-    if (!/^\d{6}$/.test(cleanPostal)) {
-      return res.status(400).json({ message: "Postal code must be 6 digits" });
-    }
-
-    const sub = Number(subtotal || 0);
-
-    // ✅ Free delivery example
-    if (sub >= 180) {
-      return res.json({
-        eligible: true,
-        deliveryFee: 0,
-        distanceKm: 0,
-        address: "Free delivery (subtotal rule)",
-      });
-    }
-
-    // ✅ Validate postal from OneMap
-    const customerLoc = await getOneMapLocation(cleanPostal);
-
-    if (!customerLoc) {
-      return res.status(400).json({
-        message: "Invalid postal code (not found in Singapore)",
-      });
-    }
-
-    // ✅ Get branch location
-    let branch = null;
-
-    if (branchId) {
-      branch = await Branch.findById(branchId);
-    }
-
-    if (!branch) {
-      branch = await Branch.findOne();
-    }
-
-    if (!branch) {
-      return res.status(400).json({ message: "No branch found" });
-    }
-
-    // ✅ You MUST have branch.location.lat + branch.location.lng
-    const branchLat = branch.location?.lat;
-    const branchLng = branch.location?.lng;
-
-    if (!branchLat || !branchLng) {
-      return res.status(400).json({
-        message: "Branch location missing (lat/lng not set)",
-      });
-    }
-
-    // ✅ Distance calculation
-    const distanceKm = haversineKm(
-      branchLat,
-      branchLng,
-      customerLoc.lat,
-      customerLoc.lng
-    );
-
-    // ✅ Your rule
-    // <= 10km => $10
-    // > 10km => $15
-    const deliveryFee = distanceKm > 10 ? 15 : 10;
-
-    return res.json({
-      eligible: true,
-      deliveryFee,
-      distanceKm: Number(distanceKm.toFixed(2)),
-      address: customerLoc.address,
-      postalCode: customerLoc.postalCode,
-    });
-  } catch (err) {
-    console.error("DELIVERY CHECK ERROR:", err.message);
-    return res.status(500).json({ message: "Delivery check failed" });
+  if (!postalCode) {
+    return res.status(400).json({ message: "Postal code required" });
   }
+
+  const fee = calculateDeliveryFee({ postalCode, subtotal });
+
+  if (fee === null) {
+    return res.status(400).json({ message: "Invalid Singapore postal code" });
+  }
+
+  return res.json({
+    eligible: true,
+    deliveryFee: fee,
+  });
 });
 
 export default router;
