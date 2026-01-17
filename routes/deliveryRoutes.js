@@ -15,7 +15,9 @@ function calculateDeliveryFee({ postalCode, subtotal }) {
   const cleanPostal = String(postalCode).trim();
 
   // ✅ Must be 6 digit SG postal code
-  if (!/^\d{6}$/.test(cleanPostal)) return null;
+ if (!/^\d{6}$/.test(cleanPostal)) {
+  return res.status(400).json({ message: "Invalid Singapore postal code" });
+}
 
   // ✅ Free delivery rule
   if (Number(subtotal || 0) >= 180) return 0;
