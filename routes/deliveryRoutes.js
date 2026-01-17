@@ -25,22 +25,27 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 
 // ✅ OneMap postal -> address + lat/lng
 async function getOneMapLocation(postalCode) {
-  const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${postalCode}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
+  const cleanPostal = String(postalCode).trim();
+
+  const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${cleanPostal}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
 
   const res = await axios.get(url);
   const results = res.data?.results || [];
 
-  const match = results.find((r) => r.POSTAL === postalCode);
+  // ✅ Try exact match first
+  const match =
+    results.find((r) => String(r.POSTAL).trim() === cleanPostal) || results[0];
 
   if (!match) return null;
 
   return {
-    postalCode: match.POSTAL,
+    postalCode: String(match.POSTAL).trim(),
     address: match.ADDRESS,
     lat: Number(match.LATITUDE),
     lng: Number(match.LONGITUDE),
   };
 }
+
 
 // ✅ POST /api/delivery/check
 router.post("/check", async (req, res) => {
