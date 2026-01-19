@@ -1,3 +1,5 @@
+
+
 import jwt from "jsonwebtoken";
 
 const adminAuth = (req, res, next) => {
@@ -9,10 +11,14 @@ const adminAuth = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.adminId = decoded.id;
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     next();
-  } catch {
-    res.status(401).json({ message: "Invalid token" });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
 
