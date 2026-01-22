@@ -23,6 +23,7 @@ const orderSchema = new mongoose.Schema(
     customer: {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
+      email: { type: String, required: true }, // ✅ ADD THIS
       company: { type: String },
       phone: { type: String, required: true },
 
