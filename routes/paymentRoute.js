@@ -82,41 +82,41 @@ router.post("/verify", async (req, res) => {
     );
 
     // ✅ Send email (only if customer email exists)
-    if (order?.customer?.email) {
-      await sendEmail({
-        to: order.customer.email,
-        subject: `Order Confirmed ✅ | ONE18 Bakery`,
-        html: `
-          <div style="font-family: Arial; line-height: 1.6;">
-            <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
-            <p>Your payment was successful and your order is confirmed ✅</p>
+    // if (order?.customer?.email) {
+    //   await sendEmail({
+    //     to: order.customer.email,
+    //     subject: `Order Confirmed ✅ | ONE18 Bakery`,
+    //     html: `
+    //       <div style="font-family: Arial; line-height: 1.6;">
+    //         <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
+    //         <p>Your payment was successful and your order is confirmed ✅</p>
 
-            <h3>Order Summary</h3>
-            <p><b>Order ID:</b> ${order._id}</p>
-            <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
-            <p><b>Date:</b> ${order.fulfillmentDate}</p>
-            <p><b>Time:</b> ${order.fulfillmentTime}</p>
+    //         <h3>Order Summary</h3>
+    //         <p><b>Order ID:</b> ${order._id}</p>
+    //         <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
+    //         <p><b>Date:</b> ${order.fulfillmentDate}</p>
+    //         <p><b>Time:</b> ${order.fulfillmentTime}</p>
 
-            <h3>Items:</h3>
-            <ul>
-              ${order.items
-                .map(
-                  (i) =>
-                    `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
-                      i.qty
-                    }</li>`
-                )
-                .join("")}
-            </ul>
+    //         <h3>Items:</h3>
+    //         <ul>
+    //           ${order.items
+    //             .map(
+    //               (i) =>
+    //                 `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
+    //                   i.qty
+    //                 }</li>`
+    //             )
+    //             .join("")}
+    //         </ul>
 
-            <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
+    //         <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
 
-            <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
-            <p><b>ONE18 Bakery</b></p>
-          </div>
-        `,
-      });
-    }
+    //         <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
+    //         <p><b>ONE18 Bakery</b></p>
+    //       </div>
+    //     `,
+    //   });
+    // }
 
     return res.json({ success: true, message: "Payment verified ✅ Email sent ✅" });
   } catch (err) {
