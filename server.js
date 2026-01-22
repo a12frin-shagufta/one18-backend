@@ -32,28 +32,32 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
-  "https://admin-eta-topaz.vercel.app",
   "https://frontend-pi-seven-84.vercel.app",
+  "https://admin-eta-topaz.vercel.app",
 ];
-
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // allow Postman / server-to-server (no origin)
-      if (!origin) return callback(null, true);
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // Postman
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+      if (allowedOrigins.includes(origin)) return cb(null, true);
 
-      return callback(new Error("Not allowed by CORS: " + origin));
+      // ✅ allow all vercel preview domains also
+      if (origin.endsWith(".vercel.app")) return cb(null, true);
+
+      return cb(new Error("CORS blocked: " + origin));
     },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
+
+// ✅ VERY IMPORTANT
+app.options(/.*/, cors());
+
+
 
 
 
