@@ -28,13 +28,30 @@ const orderSchema = new mongoose.Schema(
       phone: { type: String, required: true },
 
       // ✅ delivery fields
-      address: { type: String, required: true },
+      address: {
+  type: String,
+  required: function () {
+    return this.fulfillmentType === "delivery";
+  },
+},
       apartment: { type: String },
-      postalCode: { type: String, required: true },
+     postalCode: {
+  type: String,
+  required: function () {
+    return this.fulfillmentType === "delivery";
+  },
+},
 
       // ✅ instructions from cart drawer
       message: { type: String },
     },
+
+    paymentStatus: {
+  type: String,
+  enum: ["pending", "paid", "failed"],
+  default: "pending",
+},
+
 
     // ✅ fulfillment date & time (what customer selected)
     fulfillmentDate: { type: String, required: true }, // "2026-01-15"
