@@ -57,6 +57,30 @@ router.post("/create-checkout-session", async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 });
+router.post("/verify", async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (!session || session.payment_status !== "paid") {
+      return res.status(400).json({ message: "Payment not completed" });
+    }
+
+    const orderId = session.metadata?.orderId;
+
+    if (orderId) {
+      await Order.findByIdAndUpdate(orderId, {
+        paymentStatus: "paid",
+      });
+    }
+
+    return res.json({ success: true, message: "Payment verified ✅" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 
 
 export default router;
