@@ -34,6 +34,7 @@ const allowedOrigins = [
   "http://localhost:5175",
   "https://frontend-pi-seven-84.vercel.app",
   "https://admin-eta-topaz.vercel.app",
+  "https://www.one18bakery.com"
 ];
 
 app.use(
