@@ -34,20 +34,24 @@ const allowedOrigins = [
   "http://localhost:5175",
   "https://frontend-pi-seven-84.vercel.app",
   "https://admin-eta-topaz.vercel.app",
-  "https://www.one18bakery.com"
+  "https://www.one18bakery.com",
+  "https://one18bakery.com", // ✅ add non-www also
 ];
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // Postman
+      // ✅ allow Postman/server calls
+      if (!origin) return cb(null, true);
 
+      // ✅ allow exact domains
       if (allowedOrigins.includes(origin)) return cb(null, true);
 
-      // ✅ allow all vercel preview domains also
+      // ✅ allow any vercel preview domain
       if (origin.endsWith(".vercel.app")) return cb(null, true);
 
-      return cb(new Error("CORS blocked: " + origin));
+      // ✅ do NOT throw error (prevents CORS headers)
+      return cb(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
