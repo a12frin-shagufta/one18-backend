@@ -9,6 +9,11 @@ export const sendEmail = async ({ to, subject, html }) => {
       user: process.env.BREVO_SMTP_USER,
       pass: process.env.BREVO_SMTP_PASS,
     },
+
+    // ✅ prevents long waiting
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
   });
 
   const info = await transporter.sendMail({

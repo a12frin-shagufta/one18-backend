@@ -4,13 +4,15 @@ import Order from "../models/Order.js";
 import { sendEmail } from "../utils/sendEmail.js";
 
 const router = express.Router();
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ✅ Small helper log format
+// ✅ Logs
 const log = (...args) => console.log("💳 [PAYMENT]", ...args);
 const errlog = (...args) => console.log("❌ [PAYMENT]", ...args);
 
+/* ==============================
+   CREATE STRIPE CHECKOUT SESSION
+================================ */
 router.post("/create-checkout-session", async (req, res) => {
   log("✅ create-checkout-session HIT");
 
@@ -22,7 +24,7 @@ router.post("/create-checkout-session", async (req, res) => {
     log("Customer Email:", orderPayload?.customer?.email);
     log("Fulfillment Type:", orderPayload?.fulfillmentType);
 
-    // ✅ 1) Save order in DB first (pending payment)
+    // ✅ 1) Save order in DB first (pending)
     log("Saving order in DB...");
     const savedOrder = await Order.create({
       ...orderPayload,
@@ -58,6 +60,7 @@ router.post("/create-checkout-session", async (req, res) => {
       });
     }
 
+    // ✅ 2) Create Stripe session
     log("Creating Stripe session...");
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -84,6 +87,10 @@ router.post("/create-checkout-session", async (req, res) => {
   }
 });
 
+/* ==============================
+   VERIFY PAYMENT + SEND EMAIL
+   ✅ Email runs in background
+================================ */
 router.post("/verify", async (req, res) => {
   log("✅ verify HIT");
 
@@ -127,60 +134,59 @@ router.post("/verify", async (req, res) => {
     log("Order found + updated:", !!order);
     log("Order customer email:", order?.customer?.email);
 
-    // ✅ EMAIL SENDING (SAFE)
+    // ✅ Send response immediately (avoid 504 timeout)
+    res.json({
+      success: true,
+      message: "Payment verified ✅ (email sending in background)",
+    });
+
+    // ✅ EMAIL (BACKGROUND - NO AWAIT)
     if (order?.customer?.email) {
-      log("Preparing email...");
-      try {
-        const emailRes = await sendEmail({
-          to: order.customer.email,
-          subject: `Order Confirmed ✅ | ONE18 Bakery`,
-          html: `
-            <div style="font-family: Arial; line-height: 1.6;">
-              <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
-              <p>Your payment was successful and your order is confirmed ✅</p>
+      log("Preparing email (background)...");
 
-              <h3>Order Summary</h3>
-              <p><b>Order ID:</b> ${order._id}</p>
-              <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
-              <p><b>Date:</b> ${order.fulfillmentDate}</p>
-              <p><b>Time:</b> ${order.fulfillmentTime}</p>
+      sendEmail({
+        to: order.customer.email,
+        subject: `Order Confirmed ✅ | ONE18 Bakery`,
+        html: `
+          <div style="font-family: Arial; line-height: 1.6;">
+            <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
+            <p>Your payment was successful and your order is confirmed ✅</p>
 
-              <h3>Items:</h3>
-              <ul>
-                ${order.items
-                  .map(
-                    (i) =>
-                      `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
-                        i.qty
-                      }</li>`
-                  )
-                  .join("")}
-              </ul>
+            <h3>Order Summary</h3>
+            <p><b>Order ID:</b> ${order._id}</p>
+            <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
+            <p><b>Date:</b> ${order.fulfillmentDate}</p>
+            <p><b>Time:</b> ${order.fulfillmentTime}</p>
 
-              <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
+            <h3>Items:</h3>
+            <ul>
+              ${order.items
+                .map(
+                  (i) =>
+                    `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
+                      i.qty
+                    }</li>`
+                )
+                .join("")}
+            </ul>
 
-              <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
-              <p><b>ONE18 Bakery</b></p>
-            </div>
-          `,
+            <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
+
+            <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
+            <p><b>ONE18 Bakery</b></p>
+          </div>
+        `,
+      })
+        .then((emailRes) => {
+          log("✅ Email SENT successfully!");
+          log("Email messageId:", emailRes?.messageId || "N/A");
+        })
+        .catch((emailErr) => {
+          errlog("❌ Email FAILED:", emailErr.message);
         });
-
-        log("✅ Email SENT successfully!");
-        log("Email response (messageId):", emailRes?.messageId || "N/A");
-      } catch (emailErr) {
-        errlog("❌ Email FAILED:", emailErr.message);
-        errlog(emailErr);
-
-        // ✅ IMPORTANT: Do not fail payment verification
-      }
     } else {
       log("⚠️ No email found in order.customer.email — skipping email");
     }
-
-    return res.json({
-      success: true,
-      message: "Payment verified ✅ (email attempted)",
-    });
   } catch (err) {
     errlog("verify ERROR:", err.message);
     errlog(err);
