@@ -141,52 +141,124 @@ router.post("/verify", async (req, res) => {
     });
 
     // ✅ EMAIL (BACKGROUND - NO AWAIT)
-    if (order?.customer?.email) {
-      log("Preparing email (background)...");
+  // ✅ EMAIL (BACKGROUND - NO AWAIT)
+if (order?.customer?.email) {
+  log("Preparing customer email (background)...");
 
-      sendEmail({
-        to: order.customer.email,
-        subject: `Order Confirmed ✅ | ONE18 Bakery`,
-        html: `
-          <div style="font-family: Arial; line-height: 1.6;">
-            <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
-            <p>Your payment was successful and your order is confirmed ✅</p>
+  sendEmail({
+    to: order.customer.email,
+    subject: `Order Confirmed ✅ | ONE18 Bakery`,
+    html: `
+      <div style="font-family: Arial; line-height: 1.6;">
+        <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
+        <p>Your payment was successful and your order is confirmed ✅</p>
 
-            <h3>Order Summary</h3>
-            <p><b>Order ID:</b> ${order._id}</p>
-            <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
-            <p><b>Date:</b> ${order.fulfillmentDate}</p>
-            <p><b>Time:</b> ${order.fulfillmentTime}</p>
+        <h3>Order Summary</h3>
+        <p><b>Order ID:</b> ${order._id}</p>
+        <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
+        <p><b>Date:</b> ${order.fulfillmentDate}</p>
+        <p><b>Time:</b> ${order.fulfillmentTime}</p>
 
-            <h3>Items:</h3>
-            <ul>
-              ${order.items
-                .map(
-                  (i) =>
-                    `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
-                      i.qty
-                    }</li>`
-                )
-                .join("")}
-            </ul>
+        <h3>Items:</h3>
+        <ul>
+          ${order.items
+            .map(
+              (i) =>
+                `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
+                  i.qty
+                }</li>`
+            )
+            .join("")}
+        </ul>
 
-            <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
+        <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
 
-            <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
-            <p><b>ONE18 Bakery</b></p>
-          </div>
-        `,
-      })
-        .then((emailRes) => {
-          log("✅ Email SENT successfully!");
-          log("Email messageId:", emailRes?.messageId || "N/A");
-        })
-        .catch((emailErr) => {
-          errlog("❌ Email FAILED:", emailErr.message);
-        });
-    } else {
-      log("⚠️ No email found in order.customer.email — skipping email");
-    }
+        <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
+        <p><b>ONE18 Bakery</b></p>
+      </div>
+    `,
+  })
+    .then((emailRes) => {
+      log("✅ Customer Email SENT successfully!");
+      log("Customer email messageId:", emailRes?.messageId || "N/A");
+    })
+    .catch((emailErr) => {
+      errlog("❌ Customer Email FAILED:", emailErr.message);
+    });
+} else {
+  log("⚠️ No customer email found — skipping customer email");
+}
+
+// ✅ ADMIN EMAIL ALERT (BACKGROUND)
+const ADMIN_EMAIL =
+  process.env.ADMIN_ORDER_EMAIL || process.env.MAIL_FROM_EMAIL;
+
+if (ADMIN_EMAIL) {
+  log("Preparing admin order alert email (background)...");
+
+  sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `🚨 New Order Received | ONE18 Bakery (${order?.fulfillmentType || "order"})`,
+    html: `
+      <div style="font-family: Arial; line-height: 1.6;">
+        <h2>🚨 New Order Received</h2>
+        <p><b>Order ID:</b> ${order?._id}</p>
+
+        <h3>Customer Info</h3>
+        <p><b>Name:</b> ${order?.customer?.firstName || ""} ${
+      order?.customer?.lastName || ""
+    }</p>
+        <p><b>Email:</b> ${order?.customer?.email || "-"}</p>
+        <p><b>Phone:</b> ${order?.customer?.phone || "-"}</p>
+
+        <h3>Fulfillment</h3>
+        <p><b>Type:</b> ${order?.fulfillmentType}</p>
+        <p><b>Date:</b> ${order?.fulfillmentDate}</p>
+        <p><b>Time:</b> ${order?.fulfillmentTime}</p>
+
+        ${
+          order?.fulfillmentType === "delivery"
+            ? `
+              <h3>Delivery Address</h3>
+              <p><b>Address:</b> ${order?.customer?.address || "-"}</p>
+              <p><b>Postal Code:</b> ${order?.customer?.postalCode || "-"}</p>
+            `
+            : ""
+        }
+
+        <h3>Items</h3>
+        <ul>
+          ${(order?.items || [])
+            .map(
+              (i) =>
+                `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
+                  i.qty
+                } — SGD ${i.price}</li>`
+            )
+            .join("")}
+        </ul>
+
+        <h3>Payment</h3>
+        <p><b>Status:</b> ${order?.paymentStatus}</p>
+        <p><b>Total Paid:</b> SGD ${order?.totalAmount}</p>
+
+        <p style="margin-top:18px; color:#555;">
+          ✅ This is an automated admin alert email.
+        </p>
+      </div>
+    `,
+  })
+    .then((emailRes) => {
+      log("✅ Admin Email SENT successfully!");
+      log("Admin email messageId:", emailRes?.messageId || "N/A");
+    })
+    .catch((emailErr) => {
+      errlog("❌ Admin Email FAILED:", emailErr.message);
+    });
+} else {
+  log("⚠️ ADMIN_ORDER_EMAIL missing — skipping admin alert email");
+}
+
   } catch (err) {
     errlog("verify ERROR:", err.message);
     errlog(err);
