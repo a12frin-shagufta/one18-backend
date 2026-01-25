@@ -1,13 +1,10 @@
-
-
-
-
-// ADD category
 import Category from "../models/Category.js";
-import cloudinary from "../config/cloudinary.js";
 import sharp from "sharp";
 
-// ADD category
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import crypto from "crypto";
+import { r2 } from "../config/r2.js";
+
 export const addCategory = async (req, res) => {
   try {
     const { name } = req.body;
@@ -24,24 +21,22 @@ export const addCategory = async (req, res) => {
     if (req.file) {
       // 🔥 COMPRESS IMAGE
       const compressedBuffer = await sharp(req.file.buffer)
-        .resize(1200) // max width
-        .jpeg({ quality: 70 }) // reduce size
+        .resize(1200)
+        .jpeg({ quality: 70 })
         .toBuffer();
 
-      // 🔥 UPLOAD TO CLOUDINARY
-      const uploadResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream(
-            { folder: "categories", resource_type: "image" },
-            (err, result) => {
-              if (err) reject(err);
-              resolve(result);
-            }
-          )
-          .end(compressedBuffer);
-      });
+      const fileName = `categories/${crypto.randomBytes(16).toString("hex")}.jpg`;
 
-      coverImage = uploadResult.secure_url;
+      await r2.send(
+        new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: fileName,
+          Body: compressedBuffer,
+          ContentType: "image/jpeg",
+        })
+      );
+
+      coverImage = `${process.env.R2_PUBLIC_URL}/${fileName}`;
     }
 
     const category = await Category.create({
@@ -51,11 +46,10 @@ export const addCategory = async (req, res) => {
 
     res.json(category);
   } catch (err) {
-    console.error(err);
+    console.error("ADD CATEGORY ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
-
 
 // DELETE category
 export const deleteCategory = async (req, res) => {

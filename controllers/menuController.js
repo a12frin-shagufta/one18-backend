@@ -1,29 +1,48 @@
-
-
 /* ======================
    ADD MENU ITEM
 ====================== */
 import slugify from "slugify";
 import MenuItem from "../models/MenuItem.js";
-import cloudinary from "../config/cloudinary.js";
 import mongoose from "mongoose";
-// controllers/menuController.js
+
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import crypto from "crypto";
+import { r2 } from "../config/r2.js";
+import dotenv from "dotenv";
+
+
+// ✅ helper upload function
+const uploadFileToR2 = async (file) => {
+  const ext = file.originalname.split(".").pop();
+  const fileName = `menu/${crypto.randomBytes(16).toString("hex")}.${ext}`;
+
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: fileName,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    })
+  );
+
+  return `${process.env.R2_PUBLIC_URL}/${fileName}`;
+};
+
 export const addMenuItem = async (req, res) => {
   try {
-  const {
-  name,
-  description,
-  servingInfo, // ✅ NEW
-  category,
-  subcategory,
-  variants,
-  branches,
-  preorder,
-  isBestSeller,
-  festival,
-  inStock,
-} = req.body;
-
+    const {
+      name,
+      description,
+      servingInfo,
+      category,
+      subcategory,
+      variants,
+      branches,
+      preorder,
+      isBestSeller,
+      festival,
+      inStock,
+    } = req.body;
 
     if (!name || !category || !variants) {
       return res.status(400).json({ message: "Missing fields" });
@@ -36,46 +55,37 @@ export const addMenuItem = async (req, res) => {
       return res.status(400).json({ message: "At least one image required" });
     }
 
+    // ✅ Upload all images to R2
     const imageUrls = [];
-
     for (const file of req.files) {
-      const base64 = file.buffer.toString("base64");
-      const dataUri = `data:${file.mimetype};base64,${base64}`;
-
-      const uploadResult = await cloudinary.uploader.upload(dataUri, {
-        folder: "menu",
-      });
-
-      imageUrls.push(uploadResult.secure_url);
+      const url = await uploadFileToR2(file);
+      imageUrls.push(url);
     }
 
     const slug = slugify(name, { lower: true, strict: true });
 
     const menuItem = await MenuItem.create({
-  name: name.trim(),
-  slug,
-  description: description?.trim() || "",
-  servingInfo: servingInfo?.trim() || "", // ✅ NEW
-  category,
-  subcategory: subcategory || null,
-  images: imageUrls,
-  variants: parsedVariants,
-  branches: branches ? JSON.parse(branches) : [],
-  preorder: preorder ? JSON.parse(preorder) : { enabled: false },
-  festival: festival || null,
-  isBestSeller: isBestSeller === "true" || isBestSeller === true,
-  inStock: inStock !== "false",
-});
-
+      name: name.trim(),
+      slug,
+      description: description?.trim() || "",
+      servingInfo: servingInfo?.trim() || "",
+      category,
+      subcategory: subcategory || null,
+      images: imageUrls,
+      variants: parsedVariants,
+      branches: branches ? JSON.parse(branches) : [],
+      preorder: preorder ? JSON.parse(preorder) : { enabled: false },
+      festival: festival || null,
+      isBestSeller: isBestSeller === "true" || isBestSeller === true,
+      inStock: inStock !== "false",
+    });
 
     res.json({ success: true, menuItem });
   } catch (err) {
+    console.error("ADD MENU ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
-
-
-
 
 /* ======================
    GET MENU
@@ -86,18 +96,13 @@ export const getMenu = async (req, res) => {
 
     const query = {
       inStock: true,
-      $or: [
-        { isAvailable: true },
-        { isAvailable: { $exists: false } },
-      ],
+      $or: [{ isAvailable: true }, { isAvailable: { $exists: false } }],
     };
 
-    // ✅ branch filter (existing)
     if (branch && mongoose.Types.ObjectId.isValid(branch)) {
       query.branches = branch;
     }
 
-    // ✅ festival filter (NEW, optional)
     if (festival && mongoose.Types.ObjectId.isValid(festival)) {
       query.festival = festival;
     }
@@ -115,104 +120,84 @@ export const getMenu = async (req, res) => {
   }
 };
 
-
-
-
 /* ======================
    UPDATE MENU ITEM
 ====================== */
 export const updateMenuItem = async (req, res) => {
   try {
- const {
-  name,
-  description,
-  servingInfo, // ✅ NEW
-  category,
-  subcategory,
-  variants,
-  branches,
-  preorder,
-  isBestSeller,
-  removedImages,
-  inStock,
-  isAvailable,
-  festival,
-} = req.body;
+    const {
+      name,
+      description,
+      servingInfo,
+      category,
+      subcategory,
+      variants,
+      branches,
+      preorder,
+      isBestSeller,
+      removedImages,
+      inStock,
+      isAvailable,
+      festival,
+    } = req.body;
 
-
- let removed = [];
-try {
-  removed = removedImages ? JSON.parse(removedImages) : [];
-} catch {
-  removed = [];
-}
-
+    let removed = [];
+    try {
+      removed = removedImages ? JSON.parse(removedImages) : [];
+    } catch {
+      removed = [];
+    }
 
     const parsedVariants =
       typeof variants === "string" ? JSON.parse(variants) : variants;
 
-    // 🔥 1. FETCH EXISTING ITEM
     const item = await MenuItem.findById(req.params.id);
     if (!item) {
       return res.status(404).json({ message: "Menu item not found" });
     }
 
-    // 🔥 2. START WITH EXISTING IMAGES
     let finalImages = [...item.images];
 
-    // 🔥 3. REMOVE DELETED IMAGES
+    // ✅ Remove deleted images from DB list
     if (removed.length > 0) {
-      finalImages = finalImages.filter(img => !removed.includes(img));
+      finalImages = finalImages.filter((img) => !removed.includes(img));
     }
 
-    // 🔥 4. ADD NEW IMAGES
+    // ✅ Upload new images to R2
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const base64 = file.buffer.toString("base64");
-        const dataUri = `data:${file.mimetype};base64,${base64}`;
-
-        const uploadResult = await cloudinary.uploader.upload(dataUri, {
-          folder: "menu",
-        });
-
-        finalImages.push(uploadResult.secure_url);
+        const url = await uploadFileToR2(file);
+        finalImages.push(url);
       }
     }
 
-    // 🔥 5. UPDATE OBJECT
-const update = {
-  name: name.trim(),
-  slug: slugify(name, { lower: true, strict: true }),
-  description: description?.trim() || "",
-  servingInfo: servingInfo?.trim() || "", // ✅ NEW
-  category,
-  subcategory,
-  festival: festival && festival !== "null" ? festival : null,
-  variants: parsedVariants,
-  branches: branches ? JSON.parse(branches) : item.branches,
-  preorder: preorder ? JSON.parse(preorder) : item.preorder,
-  isBestSeller: isBestSeller === "true",
-  inStock: inStock !== "false",
-  isAvailable: isAvailable !== "false",
-  images: finalImages,
-};
+    const update = {
+      name: name.trim(),
+      slug: slugify(name, { lower: true, strict: true }),
+      description: description?.trim() || "",
+      servingInfo: servingInfo?.trim() || "",
+      category,
+      subcategory,
+      festival: festival && festival !== "null" ? festival : null,
+      variants: parsedVariants,
+      branches: branches ? JSON.parse(branches) : item.branches,
+      preorder: preorder ? JSON.parse(preorder) : item.preorder,
+      isBestSeller: isBestSeller === "true",
+      inStock: inStock !== "false",
+      isAvailable: isAvailable !== "false",
+      images: finalImages,
+    };
 
-
-
-
-    const updatedItem = await MenuItem.findByIdAndUpdate(
-      req.params.id,
-      update,
-      { new: true }
-    );
+    const updatedItem = await MenuItem.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+    });
 
     res.json({ success: true, item: updatedItem });
   } catch (err) {
+    console.error("UPDATE MENU ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
-
-
 
 /* ======================
    DELETE MENU ITEM
@@ -234,7 +219,7 @@ export const getMenuItemById = async (req, res) => {
     const item = await MenuItem.findById(req.params.id)
       .populate("category", "name")
       .populate("subcategory", "name")
-      .populate("festival", "name"); // ✅ ADD THIS LINE
+      .populate("festival", "name");
 
     if (!item) {
       return res.status(404).json({ message: "Menu item not found" });
@@ -245,7 +230,6 @@ export const getMenuItemById = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getMenuItemBySlug = async (req, res) => {
   try {
@@ -264,10 +248,9 @@ export const getMenuItemBySlug = async (req, res) => {
   }
 };
 
-
-
-// controllers/menuController.js
-// ADMIN: get all menu items (no branch filter)
+/* ======================
+   ADMIN MENU
+====================== */
 export const getAdminMenu = async (req, res) => {
   try {
     const menu = await MenuItem.find()
@@ -275,7 +258,7 @@ export const getAdminMenu = async (req, res) => {
       .populate("subcategory", "name")
       .populate("festival", "name");
 
-    res.json(menu); // ✅ MUST return array
+    res.json(menu);
   } catch (err) {
     console.error("ADMIN MENU ERROR:", err);
     res.status(500).json({ message: "Failed to load admin menu" });

@@ -1,11 +1,10 @@
 import Festival from "../models/Festival.js";
 import MenuItem from "../models/MenuItem.js";
-import cloudinary from "../config/cloudinary.js";
 import slugify from "slugify";
-/* ==========================
-   CREATE FESTIVAL
-========================== */
 
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import crypto from "crypto";
+import { r2 } from "../config/r2.js";
 
 export const createFestival = async (req, res) => {
   try {
@@ -17,31 +16,33 @@ export const createFestival = async (req, res) => {
       });
     }
 
-    // 🔥 Convert buffer to base64
-    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const ext = req.file.originalname.split(".").pop();
+    const fileName = `festivals/${crypto.randomBytes(16).toString("hex")}.${ext}`;
 
-    const uploadResult = await cloudinary.uploader.upload(base64Image, {
-      folder: "festivals",
-    });
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: fileName,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      })
+    );
+
+    const bannerUrl = `${process.env.R2_PUBLIC_URL}/${fileName}`;
 
     const festival = await Festival.create({
       name,
       slug: slugify(name, { lower: true }),
-      bannerImage: uploadResult.secure_url, // ✅ VALID URL
+      bannerImage: bannerUrl,
       isActive: true,
-      
-      
     });
 
     res.json(festival);
   } catch (err) {
-    console.error(err);
+    console.error("CREATE FESTIVAL ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
-
-
-
 
 /* ==========================
    GET FESTIVALS
@@ -66,7 +67,6 @@ export const getFestivals = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 /* ==========================
    TOGGLE FESTIVAL

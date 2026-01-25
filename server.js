@@ -118,11 +118,14 @@ mongoose
     process.exit(1);
   });
 
-  console.log("☁️ CLOUDINARY:", {
-  name: process.env.CLOUDINARY_CLOUD_NAME,
-  key: process.env.CLOUDINARY_API_KEY,
-  secret: process.env.CLOUDINARY_API_SECRET ? "SET" : "MISSING",
+console.log("☁️ R2 CONFIG:", {
+  bucket: process.env.R2_BUCKET_NAME,
+  publicUrl: process.env.R2_PUBLIC_URL,
+  accountId: process.env.R2_ACCOUNT_ID ? "SET" : "MISSING",
+  accessKey: process.env.R2_ACCESS_KEY_ID ? "SET" : "MISSING",
+  secretKey: process.env.R2_SECRET_ACCESS_KEY ? "SET" : "MISSING",
 });
+
 
 console.log("ADMIN EMAIL:", process.env.ADMIN_EMAIL);
 console.log("HASH EXISTS:", !!process.env.ADMIN_PASSWORD_HASH);
