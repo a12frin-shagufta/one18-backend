@@ -8,25 +8,33 @@ import mongoose from "mongoose";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import crypto from "crypto";
 import { r2 } from "../config/r2.js";
-import dotenv from "dotenv";
+import sharp from "sharp";
+
+
 
 
 // ✅ helper upload function
 const uploadFileToR2 = async (file) => {
-  const ext = file.originalname.split(".").pop();
-  const fileName = `menu/${crypto.randomBytes(16).toString("hex")}.${ext}`;
+  // ✅ compress image before upload
+  const compressedBuffer = await sharp(file.buffer)
+    .resize(1400) // max width
+    .jpeg({ quality: 70 }) // reduce size
+    .toBuffer();
+
+  const fileName = `menu/${crypto.randomBytes(16).toString("hex")}.jpg`;
 
   await r2.send(
     new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: fileName,
-      Body: file.buffer,
-      ContentType: file.mimetype,
+      Body: compressedBuffer,
+      ContentType: "image/jpeg",
     })
   );
 
   return `${process.env.R2_PUBLIC_URL}/${fileName}`;
 };
+
 
 export const addMenuItem = async (req, res) => {
   try {
