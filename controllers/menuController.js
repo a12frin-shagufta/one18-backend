@@ -265,8 +265,8 @@ export const getAdminMenu = async (req, res) => {
     const menu = await MenuItem.find()
       .populate("category", "name")
       .populate("subcategory", "name")
-      .populate("festival", "name");
-       .sort({ createdAt: -1 });
+      .populate("festival", "name")
+      .sort({ createdAt: -1 });
 
     res.json(menu);
   } catch (err) {
