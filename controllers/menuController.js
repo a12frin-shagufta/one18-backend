@@ -119,7 +119,8 @@ export const getMenu = async (req, res) => {
       .populate("category", "name")
       .populate("subcategory", "name")
       .populate("festival", "name slug bannerImage isActive")
-      .sort({ isBestSeller: -1 });
+     .sort({ isBestSeller: -1, createdAt: -1 });
+
 
     res.json(menu);
   } catch (err) {
@@ -265,6 +266,7 @@ export const getAdminMenu = async (req, res) => {
       .populate("category", "name")
       .populate("subcategory", "name")
       .populate("festival", "name");
+       .sort({ createdAt: -1 });
 
     res.json(menu);
   } catch (err) {
