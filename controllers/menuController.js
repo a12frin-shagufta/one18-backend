@@ -107,13 +107,15 @@ export const getMenu = async (req, res) => {
       $or: [{ isAvailable: true }, { isAvailable: { $exists: false } }],
     };
 
-    if (branch && mongoose.Types.ObjectId.isValid(branch)) {
-      query.branches = branch;
-    }
+    // ✅ Festival should behave like Best Seller (NO branch dependency)
+if (festival && mongoose.Types.ObjectId.isValid(festival)) {
+  query.festival = festival;
+} 
+// ✅ Branch filter ONLY when NOT festival
+else if (branch && mongoose.Types.ObjectId.isValid(branch)) {
+  query.branches = branch;
+}
 
-    if (festival && mongoose.Types.ObjectId.isValid(festival)) {
-      query.festival = festival;
-    }
 
     const menu = await MenuItem.find(query)
       .populate("category", "name")
