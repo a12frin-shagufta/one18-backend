@@ -102,10 +102,17 @@ export const getMenu = async (req, res) => {
   try {
     const { branch, festival } = req.query;
 
-    const query = {
-      inStock: true,
-      $or: [{ isAvailable: true }, { isAvailable: { $exists: false } }],
-    };
+   const query = {};
+
+// ✅ Apply stock rules ONLY for normal menu
+if (!festival) {
+  query.inStock = true;
+  query.$or = [
+    { isAvailable: true },
+    { isAvailable: { $exists: false } },
+  ];
+}
+
 
     // ✅ Festival should behave like Best Seller (NO branch dependency)
 if (festival && mongoose.Types.ObjectId.isValid(festival)) {
