@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
 import moment from "moment-timezone";
 import Branch from "../models/Branch.js";
+import { validateSingaporePostal } from "../utils/validateSingaporePostal.js";
 
 const HOURS_2 = 2;
 const DAYS_3 = 3;
@@ -55,11 +56,27 @@ const bakeryPickupLocation = branchData
 
 
     // ✅ DELIVERY needs address + postal
-    if (fulfillmentType === "delivery") {
-      if (!customer.address || !customer.postalCode) {
-        return res.status(400).json({ message: "Address and postal code required" });
-      }
-    }
+    // ✅ DELIVERY needs address + postal + GOOGLE validation
+let validatedArea = null;
+
+if (fulfillmentType === "delivery") {
+  if (!customer.address || !customer.postalCode) {
+    return res.status(400).json({
+      message: "Address and postal code required",
+    });
+  }
+
+  const postalResult = await validateSingaporePostal(customer.postalCode);
+
+  if (!postalResult.valid) {
+    return res.status(400).json({
+      message: "Invalid Singapore postal code",
+    });
+  }
+
+  validatedArea = postalResult.area; // e.g. "Ang Mo Kio"
+}
+
 
     // ✅ NOW IN SINGAPORE TIME
     const nowSG = moment().tz(SG_TZ);
@@ -127,10 +144,16 @@ const bakeryPickupLocation = branchData
   fulfillmentTime,
   customer,
 
-  // ✅ Always store bakery pickup location (for both delivery + pickup)
   pickupLocation: bakeryPickupLocation,
 
-  deliveryAddress: fulfillmentType === "delivery" ? deliveryAddress : null,
+  deliveryAddress:
+    fulfillmentType === "delivery"
+      ? {
+          addressText: customer.address,
+          postalCode: customer.postalCode,
+          area: validatedArea, // ✅ NEW
+        }
+      : null,
 
   items,
   subtotal,
@@ -138,6 +161,7 @@ const bakeryPickupLocation = branchData
   totalAmount,
   lalamoveStatus,
 });
+
 
 
 

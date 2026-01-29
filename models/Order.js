@@ -55,10 +55,12 @@ const orderSchema = new mongoose.Schema(
     fulfillmentDate: { type: String, required: true },
     fulfillmentTime: { type: String, required: true },
 
-    deliveryAddress: {
-      addressText: { type: String },
-      postalCode: { type: String },
-    },
+   deliveryAddress: {
+  addressText: { type: String },
+  postalCode: { type: String },
+  area: { type: String }, // ✅ NEW
+},
+
 
     pickupLocation: {
       name: { type: String },
