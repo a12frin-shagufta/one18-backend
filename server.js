@@ -16,6 +16,7 @@ import branchRoutes from "./routes/branchRoutes.js";
 import devRoutes from "./routes/devRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import paymentRoute from "./routes/paymentRoute.js";
+import postalRoute from "./routes/postalRoute.js";
 
 
 
@@ -89,6 +90,8 @@ app.use("/api/branches", branchRoutes);
 app.use("/api/dev", devRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/payment", paymentRoute);
+app.use("/api/postal", postalRoute);
+
 
 /* =====================
    Health Check
