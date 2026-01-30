@@ -11,19 +11,26 @@ const SG_TZ = "Asia/Singapore";
 export const createOrder = async (req, res) => {
   try {
     const {
-      branch,
-      orderType,
-      fulfillmentType,
-      fulfillmentDate,
-      fulfillmentTime,
-      customer,
-      deliveryAddress,
-      pickupLocation,
-      items,
-      subtotal,
-      deliveryFee,
-      totalAmount,
-    } = req.body;
+  branch,
+  orderType,
+  fulfillmentType,
+  fulfillmentDate,
+  fulfillmentTime,
+  customer,
+  items,
+  subtotal,
+  deliveryFee,
+  totalAmount,
+  paymentMethod, // ✅ ADD THIS
+} = req.body;
+
+
+if (!["paynow", "stripe"].includes(paymentMethod)) {
+  return res.status(400).json({
+    message: "Invalid payment method",
+  });
+}
+
 
     // ✅ BASIC VALIDATION
     if (!orderType || !fulfillmentType || !customer || !items?.length) {
@@ -143,6 +150,9 @@ if (fulfillmentType === "delivery") {
   fulfillmentDate,
   fulfillmentTime,
   customer,
+
+  paymentMethod,
+  paymentStatus: paymentMethod === "paynow" ? "pending" : "paid",
 
   pickupLocation: bakeryPickupLocation,
 

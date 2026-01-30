@@ -45,6 +45,11 @@ const orderSchema = new mongoose.Schema(
 
       message: { type: String },
     },
+paymentMethod: {
+  type: String,
+  enum: ["paynow", "stripe"],
+  required: true,
+},
 
     paymentStatus: {
       type: String,
