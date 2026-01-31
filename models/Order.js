@@ -20,6 +20,11 @@ const orderSchema = new mongoose.Schema(
       required: false,
     },
 
+    paymentProof: {
+  type: String, // image URL
+  default: null,
+},
+
     customer: {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
@@ -97,6 +102,8 @@ paymentMethod: {
       enum: ["not_required", "not_booked", "booking_requested", "booked", "failed"],
       default: "not_booked",
     },
+
+    
 
     lalamoveBookingId: { type: String, default: null },
     lalamoveTrackingLink: { type: String, default: null },

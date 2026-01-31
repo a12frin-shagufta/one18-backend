@@ -2,6 +2,8 @@ import express from "express";
 import Stripe from "stripe";
 import Order from "../models/Order.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import multer from "multer";
+import { uploadPaymentProof } from "../controllers/paymentProofController.js";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -268,5 +270,17 @@ if (ADMIN_EMAIL) {
     });
   }
 });
+
+
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+
+router.post(
+  "/upload-proof",
+  upload.single("proof"),
+  uploadPaymentProof
+);
 
 export default router;
