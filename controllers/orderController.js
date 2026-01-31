@@ -21,6 +21,7 @@ export const createOrder = async (req, res) => {
   subtotal,
   deliveryFee,
   totalAmount,
+   paymentProof,
   paymentMethod, // ✅ ADD THIS
 } = req.body;
 
@@ -153,6 +154,7 @@ if (fulfillmentType === "delivery") {
 
   paymentMethod,
   paymentStatus: paymentMethod === "paynow" ? "pending" : "paid",
+   paymentProof: paymentMethod === "paynow" ? paymentProof || null : null, // ✅ ADD
 
   pickupLocation: bakeryPickupLocation,
 
