@@ -283,4 +283,79 @@ router.post(
   uploadPaymentProof
 );
 
+
+/* ==============================
+   ADMIN ACCEPT PAYNOW PAYMENT
+================================ */
+router.put("/paynow/:id/accept", async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { paymentStatus: "paid" },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // ✅ EMAIL CUSTOMER
+    if (order.customer?.email) {
+      sendEmail({
+        to: order.customer.email,
+        subject: "Payment Confirmed ✅ | ONE18 Bakery",
+        html: `
+          <h2>Payment confirmed 🎉</h2>
+          <p>Your PayNow payment has been verified.</p>
+          <p>Your order is now confirmed and will be prepared soon.</p>
+          <p><b>Order ID:</b> ${order._id}</p>
+        `,
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+
+});
+
+
+/* ==============================
+   ADMIN REJECT PAYNOW PAYMENT
+================================ */
+router.put("/paynow/:id/reject", async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { paymentStatus: "rejected" },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // EMAIL CUSTOMER
+    if (order.customer?.email) {
+      sendEmail({
+        to: order.customer.email,
+        subject: "Payment Rejected ❌ | ONE18 Bakery",
+        html: `
+          <h2>Payment verification failed</h2>
+          <p>We could not verify your PayNow payment.</p>
+          <p>Please contact support or place order again.</p>
+          <p><b>Order ID:</b> ${order._id}</p>
+        `,
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+
 export default router;
