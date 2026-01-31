@@ -3,6 +3,8 @@ import MenuItem from "../models/MenuItem.js";
 import moment from "moment-timezone";
 import Branch from "../models/Branch.js";
 import { validateSingaporePostal } from "../utils/validateSingaporePostal.js";
+import { sendEmail } from "../utils/sendEmail.js";
+
 
 const HOURS_2 = 2;
 const DAYS_3 = 3;
@@ -174,13 +176,46 @@ if (fulfillmentType === "delivery") {
   lalamoveStatus,
 });
 
+if (paymentMethod === "paynow") {
+  const ADMIN_EMAIL =
+    process.env.ADMIN_ORDER_EMAIL || process.env.MAIL_FROM_EMAIL;
 
+  if (ADMIN_EMAIL) {
+    sendEmail({
+      to: ADMIN_EMAIL,
+      subject: "🚨 New PayNow Order — Verification Needed",
+      html: `
+        <h2>New PayNow Order</h2>
+        <p><b>Order ID:</b> ${order._id}</p>
+        <p><b>Customer:</b> ${customer.firstName} ${customer.lastName}</p>
+        <p><b>Phone:</b> ${customer.phone}</p>
+        <p><b>Total:</b> SGD ${totalAmount}</p>
+      `,
+    }).catch(console.error);
+  }
+
+  if (customer.email) {
+    sendEmail({
+      to: customer.email,
+      subject: "Order Received — Payment Verification Pending",
+      html: `
+        <h2>Order Received ✅</h2>
+        <p>Your payment proof has been received.</p>
+        <p>Admin is verifying payment.</p>
+        <p><b>Order ID:</b> ${order._id}</p>
+      `,
+    }).catch(console.error);
+  }
+}
 
 
     return res.status(201).json({ success: true, order });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
+
+
+  
 };
 
 
