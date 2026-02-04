@@ -17,7 +17,7 @@ async function signAndCall(path, method, bodyObj) {
   });
 
   console.log("📡 Lalamove CALL →", method, path);  
-  console.log("📡 Lalamove BODY →", bodyObj);
+ console.log("📡 Lalamove BODY →", JSON.stringify(bodyObj, null, 2));
 
   try {
         const res = await axios.post(`${BASE}${path}`, body, {
@@ -80,7 +80,7 @@ export async function createLalamoveOrder(order) {
 
   const quoteBody = {
   data: {
-    serviceType: "MOTORCYCLE",
+    serviceType: "MOTORCYCLE_SG",
     language: "en_SG",
     isRouteOptimized: false,
 
