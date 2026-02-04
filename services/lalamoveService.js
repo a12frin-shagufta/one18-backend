@@ -5,7 +5,7 @@ const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
 
-function signAndCall(path, method, bodyObj) {
+async function signAndCall(path, method, bodyObj) {
   const body = JSON.stringify(bodyObj);
   const timestamp = Date.now().toString();
 
@@ -16,14 +16,26 @@ function signAndCall(path, method, bodyObj) {
     timestamp,
   });
 
-  return axios.post(`${BASE}${path}`, body, {
-    headers: {
-      "Content-Type": "application/json",
-      Market: MARKET,
-      Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
-    },
-  });
+  console.log("📡 Lalamove CALL →", method, path);  
+  console.log("📡 Lalamove BODY →", bodyObj);
+
+  try {
+        const res = await axios.post(`${BASE}${path}`, body, {
+            headers: {
+                "Content-Type": "application/json",
+                Market: MARKET,
+                Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
+            },
+        });
+        console.log("✅ Lalamove RESPONSE →", res.data);
+        return res;
+    } catch (err) {
+        console.log("❌ Lalamove ERROR STATUS →", err.response?.status);
+        console.log("❌ Lalamove ERROR DATA →", err.response?.data);
+        throw err;
+    }
 }
+
 
 export async function createLalamoveOrder(order) {
   if (!order.pickupLocation || !order.deliveryAddress) {
@@ -35,27 +47,30 @@ export async function createLalamoveOrder(order) {
   }
 
   const stops = [
-    {
-      address: order.pickupLocation.address,
-      name: order.pickupLocation.name,
-      phone: process.env.BAKERY_PHONE,
-      coordinates: {
-        lat: order.pickupLocation.lat || 1.3521,
-        lng: order.pickupLocation.lng || 103.8198,
-      },
+  {
+    stopId: "PICKUP",
+    address: order.pickupLocation.address,
+    name: order.pickupLocation.name,
+    phone: process.env.BAKERY_PHONE,
+    coordinates: {
+      lat: order.pickupLocation.lat || 1.3521,
+      lng: order.pickupLocation.lng || 103.8198,
     },
-    {
-      address: order.deliveryAddress.addressText,
-      name: `${order.customer.firstName} ${order.customer.lastName}`,
-      phone: order.customer.phone.startsWith("+")
-        ? order.customer.phone
-        : `+${order.customer.phone}`,
-      coordinates: {
-        lat: order.deliveryAddress.lat,
-        lng: order.deliveryAddress.lng,
-      },
+  },
+  {
+    stopId: "DROP",
+    address: order.deliveryAddress.addressText,
+    name: `${order.customer.firstName} ${order.customer.lastName}`,
+    phone: order.customer.phone.startsWith("+")
+      ? order.customer.phone
+      : `+${order.customer.phone}`,
+    coordinates: {
+      lat: order.deliveryAddress.lat,
+      lng: order.deliveryAddress.lng,
     },
-  ];
+  },
+];
+
 
   /* =========================
      STEP 1 — QUOTATION
@@ -64,18 +79,21 @@ export async function createLalamoveOrder(order) {
   const quotePath = "/v3/quotations";
 
   const quoteBody = {
-    data: {
-      serviceType: "MOTORCYCLE",
-      language: "en_SG",
-      isRouteOptimized: false,
-      item: {
-        quantity: 1,
-        weight: 1,
-        categories: ["food"],
-      },
-      stops,
+  data: {
+    serviceType: "MOTORCYCLE",
+    language: "en_SG",
+    isRouteOptimized: false,
+
+    item: {
+      quantity: 1,
+      weight: 1,
+      categories: ["FOOD"],
     },
-  };
+
+    stops,
+  },
+};
+
 
   console.log("📦 QUOTE BODY =", quoteBody);
 
