@@ -11,20 +11,30 @@ export async function createLalamoveOrder(order) {
 
   const bodyObj = {
     data: {
-      serviceType: "MOTORCYCLE", // can change later
-      specialRequests: [],
-      stops: [
-        {
-  address: order.deliveryAddress.addressText,
-  coordinates: {
-    lat: order.deliveryAddress.lat,
-    lng: order.deliveryAddress.lng
-  },
-  name: customerName,
-  phone: order.customer.phone
-}
+      serviceType: "MOTORCYCLE",
+      language: "en_SG",
 
+      stops: [
+        // ✅ PICKUP STOP
+        {
+          address: order.pickupLocation.address,
+          name: order.pickupLocation.name,
+          phone: process.env.BAKERY_PHONE,
+        },
+
+        // ✅ DELIVERY STOP
+        {
+          address: order.deliveryAddress.addressText,
+          coordinates: {
+            lat: order.deliveryAddress.lat,
+            lng: order.deliveryAddress.lng,
+          },
+          name: `${order.customer.firstName} ${order.customer.lastName}`,
+          phone: order.customer.phone,
+        },
       ],
+
+      specialRequests: [],
     },
   };
 
@@ -41,8 +51,8 @@ export async function createLalamoveOrder(order) {
   const res = await axios.post(`${BASE}${path}`, bodyObj, {
     headers: {
       "Content-Type": "application/json",
-      "Market": MARKET,
-      "Authorization": `hmac ${API_KEY}:${timestamp}:${signature}`,
+      Market: MARKET,
+      Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
     },
   });
 
