@@ -28,6 +28,8 @@ export const createOrder = async (req, res) => {
   paymentMethod, // ✅ ADD THIS
 } = req.body;
 
+console.log("Incoming branch:", branch);
+
 
 if (!["paynow", "stripe"].includes(paymentMethod)) {
   return res.status(400).json({
