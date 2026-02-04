@@ -13,30 +13,40 @@ export async function createLalamoveOrder(order) {
     throw new Error("Missing pickup or delivery data");
   }
 
+  if (
+    !order.deliveryAddress?.lat ||
+    !order.deliveryAddress?.lng
+  ) {
+    console.error("❌ Missing delivery coordinates:", order.deliveryAddress);
+    throw new Error("Delivery coordinates missing — cannot book Lalamove");
+  }
+
+  const formatPhone = (p) =>
+    p?.startsWith("+") ? p : `+${p}`;
+
   const bodyObj = {
     data: {
       serviceType: "MOTORCYCLE_SG",
-
       language: "en_SG",
       specialRequests: [],
 
       stops: [
-        // ✅ PICKUP
         {
           address: order.pickupLocation.address,
           name: order.pickupLocation.name,
-          phone: process.env.BAKERY_PHONE || order.customer.phone,
+          phone: formatPhone(
+            process.env.BAKERY_PHONE || order.customer.phone
+          ),
           coordinates: {
             lat: order.pickupLocation.lat || 1.3521,
             lng: order.pickupLocation.lng || 103.8198,
           },
         },
 
-        // ✅ DROP
         {
           address: order.deliveryAddress.addressText,
           name: `${order.customer.firstName} ${order.customer.lastName}`,
-          phone: order.customer.phone,
+          phone: formatPhone(order.customer.phone),
           coordinates: {
             lat: order.deliveryAddress.lat,
             lng: order.deliveryAddress.lng,
@@ -58,23 +68,15 @@ export async function createLalamoveOrder(order) {
 
   console.log("🚚 LALAMOVE BODY =", JSON.stringify(bodyObj, null, 2));
 
+  const res = await axios.post(`${BASE}${path}`, body, {
+    headers: {
+      "Content-Type": "application/json",
+      Market: MARKET,
+      Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
+    },
+  });
 
-  try {
-    const res = await axios.post(`${BASE}${path}`, body, {
-      headers: {
-        "Content-Type": "application/json",
-        Market: MARKET,
-        Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
-      },
-    });
-
-    console.log("✅ Lalamove SUCCESS:", res.data);
-    return res.data;
-
-  } catch (err) {
-    console.log("❌ Lalamove AXIOS ERROR");
-    console.log("STATUS:", err.response?.status);
-    console.log("DATA:", err.response?.data);
-    throw err;
-  }
+  console.log("✅ Lalamove SUCCESS:", res.data);
+  return res.data;
 }
+
