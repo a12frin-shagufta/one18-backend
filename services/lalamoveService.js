@@ -55,60 +55,62 @@ async function signAndCall(path, method, bodyObj) {
 
 
 export async function createLalamoveOrder(order) {
-
-  const SG_TZ = "Asia/Singapore";
-
-  const fulfillmentDateTimeSG = moment.tz(
-    `${order.fulfillmentDate} ${order.fulfillmentTime}`,
-    "YYYY-MM-DD HH:mm",
-    SG_TZ
-  );
-
-  if (!fulfillmentDateTimeSG.isValid()) {
-    throw new Error("Invalid fulfillment datetime");
+  if (!order.pickupLocation || !order.deliveryAddress) {
+    throw new Error("Missing pickup or delivery data");
   }
 
-  const scheduleAt = fulfillmentDateTimeSG.utc().toISOString();
+  if (!order.deliveryAddress.lat || !order.deliveryAddress.lng) {
+    throw new Error("Delivery coordinates missing");
+  }
 
   const stops = [
-    {
-      stopId: "1",
-      address: order.pickupLocation.address,
-      name: order.pickupLocation.name,
-      phone: process.env.BAKERY_PHONE,
-      coordinates: {
-        lat: Number(order.pickupLocation.lat || 1.3521),
-        lng: Number(order.pickupLocation.lng || 103.8198),
-      },
+  {
+    stopId: "PICKUP",
+    address: order.pickupLocation.address,
+    name: order.pickupLocation.name,
+    phone: process.env.BAKERY_PHONE,
+    coordinates: {
+      lat: order.pickupLocation.lat || 1.3521,
+      lng: order.pickupLocation.lng || 103.8198,
     },
-    {
-      stopId: "2",
-      address: order.deliveryAddress.addressText,
-      name: `${order.customer.firstName} ${order.customer.lastName}`,
-      phone: order.customer.phone.startsWith("+")
-        ? order.customer.phone
-        : `+65${order.customer.phone}`,
-      coordinates: {
-        lat: Number(order.deliveryAddress.lat),
-        lng: Number(order.deliveryAddress.lng),
-      },
+  },
+  {
+    stopId: "DROP",
+    address: order.deliveryAddress.addressText,
+    name: `${order.customer.firstName} ${order.customer.lastName}`,
+    phone: order.customer.phone.startsWith("+")
+      ? order.customer.phone
+      : `+${order.customer.phone}`,
+    coordinates: {
+      lat: order.deliveryAddress.lat,
+      lng: order.deliveryAddress.lng,
     },
-  ];
+  },
+];
+
+
+  /* =========================
+     STEP 1 — QUOTATION
+  ========================== */
+
+  const quotePath = "/v3/quotations";
 
   const quoteBody = {
-    data: {
-      scheduleAt,
-      serviceType: "MOTORCYCLE_SG",
-      language: "en_SG",
-      isRouteOptimized: false,
-      item: {
-        quantity: 1,
-        weight: 1,
-        categories: ["FOOD"],
-      },
-      stops,
+  data: {
+    scheduleAt,
+    serviceType: "MOTORCYCLE",
+    language: "en_SG",
+    isRouteOptimized: false,
+
+    item: {
+      quantity: 1,
+      weight: 1,
+      categories: ["FOOD"],
     },
-  };
+
+    stops,
+  },
+};
 
 
   console.log("📦 QUOTE BODY =", quoteBody);
