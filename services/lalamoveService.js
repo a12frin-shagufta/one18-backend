@@ -9,32 +9,39 @@ export async function createLalamoveOrder(order) {
   const path = `/v3/orders`;
   const method = "POST";
 
+  if (!order.pickupLocation || !order.deliveryAddress) {
+    throw new Error("Missing pickup or delivery data");
+  }
+
   const bodyObj = {
     data: {
       serviceType: "MOTORCYCLE",
       language: "en_SG",
+      specialRequests: [],
 
       stops: [
-        // ✅ PICKUP STOP
+        // ✅ PICKUP
         {
           address: order.pickupLocation.address,
           name: order.pickupLocation.name,
-          phone: process.env.BAKERY_PHONE,
+          phone: process.env.BAKERY_PHONE || order.customer.phone,
+          coordinates: {
+            lat: order.pickupLocation.lat || 1.3521,
+            lng: order.pickupLocation.lng || 103.8198,
+          },
         },
 
-        // ✅ DELIVERY STOP
+        // ✅ DROP
         {
           address: order.deliveryAddress.addressText,
+          name: `${order.customer.firstName} ${order.customer.lastName}`,
+          phone: order.customer.phone,
           coordinates: {
             lat: order.deliveryAddress.lat,
             lng: order.deliveryAddress.lng,
           },
-          name: `${order.customer.firstName} ${order.customer.lastName}`,
-          phone: order.customer.phone,
         },
       ],
-
-      specialRequests: [],
     },
   };
 
@@ -48,13 +55,28 @@ export async function createLalamoveOrder(order) {
     timestamp,
   });
 
-  const res = await axios.post(`${BASE}${path}`, bodyObj, {
-    headers: {
-      "Content-Type": "application/json",
-      Market: MARKET,
-      Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
-    },
-  });
+  console.log("========== LALAMOVE DEBUG ==========");
+  console.log("BASE:", BASE);
+  console.log("MARKET:", MARKET);
+  console.log("BODY:", JSON.stringify(bodyObj, null, 2));
+  console.log("====================================");
 
-  return res.data;
+  try {
+    const res = await axios.post(`${BASE}${path}`, body, {
+      headers: {
+        "Content-Type": "application/json",
+        Market: MARKET,
+        Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
+      },
+    });
+
+    console.log("✅ Lalamove SUCCESS:", res.data);
+    return res.data;
+
+  } catch (err) {
+    console.log("❌ Lalamove AXIOS ERROR");
+    console.log("STATUS:", err.response?.status);
+    console.log("DATA:", err.response?.data);
+    throw err;
+  }
 }
