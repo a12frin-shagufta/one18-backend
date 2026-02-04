@@ -69,6 +69,8 @@ const bakeryPickupLocation = branchData
     // ✅ DELIVERY needs address + postal
     // ✅ DELIVERY needs address + postal + GOOGLE validation
 let validatedArea = null;
+let deliveryLat = null;
+let deliveryLng = null;
 
 if (fulfillmentType === "delivery") {
   if (!customer.address || !customer.postalCode) {
@@ -77,10 +79,7 @@ if (fulfillmentType === "delivery") {
     });
   }
 
-  validatedArea = postalResult.area;
-const deliveryLat = postalResult.lat;
-const deliveryLng = postalResult.lng;
-
+  const postalResult = await validateSingaporePostal(customer.postalCode);
 
   if (!postalResult.valid) {
     return res.status(400).json({
@@ -88,8 +87,11 @@ const deliveryLng = postalResult.lng;
     });
   }
 
-  validatedArea = postalResult.area; // e.g. "Ang Mo Kio"
+  validatedArea = postalResult.area;
+  deliveryLat = postalResult.lat;
+  deliveryLng = postalResult.lng;
 }
+
 
 
     // ✅ NOW IN SINGAPORE TIME
@@ -152,7 +154,8 @@ const deliveryLng = postalResult.lng;
 
     // ✅ CREATE ORDER
    const order = await Order.create({
-  branch: branch || null,
+branch: branchData?._id || null,
+
   orderType,
   fulfillmentType,
   fulfillmentDate,
@@ -229,8 +232,10 @@ if (paymentMethod === "paynow") {
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .sort({ createdAt: -1 })
-      .populate("items.productId", "name");
+  .sort({ createdAt: -1 })
+  .populate("items.productId", "name")
+  .populate("branch", "name address");
+
 
     res.json(orders);
   } catch (err) {
