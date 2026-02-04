@@ -4,6 +4,7 @@ import moment from "moment-timezone";
 import Branch from "../models/Branch.js";
 import { validateSingaporePostal } from "../utils/validateSingaporePostal.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { createLalamoveOrder } from "../services/lalamoveService.js";
 
 
 const HOURS_2 = 2;
@@ -244,5 +245,43 @@ export const updateOrderStatus = async (req, res) => {
     res.json(order);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+
+export const bookLalamove = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    if (order.fulfillmentType !== "delivery") {
+      return res.status(400).json({ message: "Not a delivery order" });
+    }
+
+    if (order.lalamoveStatus === "booked") {
+      return res.status(400).json({ message: "Already booked" });
+    }
+
+    order.lalamoveStatus = "booking_requested";
+    await order.save();
+
+    const result = await createLalamoveOrder(order);
+
+    order.lalamoveBookingId = result.data.orderId;
+    order.lalamoveTrackingLink = result.data.shareLink;
+    order.lalamoveStatus = "booked";
+
+    await order.save();
+
+    res.json({ success: true, result });
+
+  } catch (err) {
+    console.error(err);
+    await Order.findByIdAndUpdate(req.params.id, {
+      lalamoveStatus: "failed",
+    });
+
+    res.status(500).json({ message: "Lalamove booking failed" });
   }
 };

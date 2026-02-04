@@ -3,13 +3,17 @@ import {
   createOrder,
   getAllOrders,
   updateOrderStatus,
+  bookLalamove
 } from "../controllers/orderController.js";
 import adminAuth from "../middleware/adminAuth.js";
+
 
 const router = express.Router();
 
 router.post("/", createOrder); // customer
 router.get("/", adminAuth, getAllOrders); // admin
+router.put("/:id/lalamove/request", adminAuth, bookLalamove);
+
 router.put("/:id/status", adminAuth, updateOrderStatus);
 
 export default router;
