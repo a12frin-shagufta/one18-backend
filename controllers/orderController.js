@@ -82,6 +82,7 @@ if (fulfillmentType === "delivery") {
   }
 
   const postalResult = await validateSingaporePostal(customer.postalCode);
+  console.log("📍 POSTAL RESULT =", postalResult);
 
   if (!postalResult.valid) {
     return res.status(400).json({
@@ -155,6 +156,12 @@ if (fulfillmentType === "delivery") {
     }
 
     // ✅ CREATE ORDER
+    console.log("📦 SAVING DELIVERY =", {
+  validatedArea,
+  deliveryLat,
+  deliveryLng
+});
+
    const order = await Order.create({
 branch: branchData?._id || null,
 

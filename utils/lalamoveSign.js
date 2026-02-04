@@ -8,7 +8,7 @@ export function signLalamoveRequest({
 }) {
   const apiSecret = process.env.LALAMOVE_API_SECRET;
 
-  const raw = `${timestamp}\r\n${method.toUpperCase()}\r\n${path}\r\n\r\n${body}`;
+  const raw = `${timestamp}\r\n${method.toUpperCase()}\r\n${path}\r\n\r\n${body}`; // 
 
   return crypto
     .createHmac("sha256", apiSecret)
