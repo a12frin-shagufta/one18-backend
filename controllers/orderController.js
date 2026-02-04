@@ -253,7 +253,9 @@ export const bookLalamove = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
     if (order.fulfillmentType !== "delivery") {
       return res.status(400).json({ message: "Not a delivery order" });
@@ -261,6 +263,12 @@ export const bookLalamove = async (req, res) => {
 
     if (order.lalamoveStatus === "booked") {
       return res.status(400).json({ message: "Already booked" });
+    }
+
+    if (!order.pickupLocation || !order.deliveryAddress) {
+      return res.status(400).json({
+        message: "Missing pickup or delivery address",
+      });
     }
 
     order.lalamoveStatus = "booking_requested";
@@ -274,14 +282,18 @@ export const bookLalamove = async (req, res) => {
 
     await order.save();
 
-    res.json({ success: true, result });
+    return res.json({ success: true, result });
 
   } catch (err) {
-    console.error(err);
+    console.error("Lalamove booking error:");
+    console.error(err.response?.data || err.message || err);
+
     await Order.findByIdAndUpdate(req.params.id, {
       lalamoveStatus: "failed",
     });
 
-    res.status(500).json({ message: "Lalamove booking failed" });
+    return res.status(500).json({
+      message: err.response?.data || err.message || "Lalamove booking failed",
+    });
   }
 };
