@@ -1,9 +1,26 @@
 import axios from "axios";
 import { signLalamoveRequest } from "../utils/lalamoveSign.js";
+import moment from "moment-timezone";
+
 
 const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
+
+const SG_TZ = "Asia/Singapore";
+
+const fulfillmentDateTimeSG = moment.tz(
+  `${order.fulfillmentDate} ${order.fulfillmentTime}`,
+  "YYYY-MM-DD HH:mm",
+  SG_TZ
+);
+
+if (!fulfillmentDateTimeSG.isValid()) {
+  throw new Error("Invalid fulfillment datetime");
+}
+
+const scheduleAt = fulfillmentDateTimeSG.utc().toISOString();
+
 
 async function signAndCall(path, method, bodyObj) {
   const body = JSON.stringify(bodyObj);
@@ -38,61 +55,60 @@ async function signAndCall(path, method, bodyObj) {
 
 
 export async function createLalamoveOrder(order) {
-  if (!order.pickupLocation || !order.deliveryAddress) {
-    throw new Error("Missing pickup or delivery data");
+
+  const SG_TZ = "Asia/Singapore";
+
+  const fulfillmentDateTimeSG = moment.tz(
+    `${order.fulfillmentDate} ${order.fulfillmentTime}`,
+    "YYYY-MM-DD HH:mm",
+    SG_TZ
+  );
+
+  if (!fulfillmentDateTimeSG.isValid()) {
+    throw new Error("Invalid fulfillment datetime");
   }
 
-  if (!order.deliveryAddress.lat || !order.deliveryAddress.lng) {
-    throw new Error("Delivery coordinates missing");
-  }
+  const scheduleAt = fulfillmentDateTimeSG.utc().toISOString();
 
   const stops = [
-  {
-    stopId: "PICKUP",
-    address: order.pickupLocation.address,
-    name: order.pickupLocation.name,
-    phone: process.env.BAKERY_PHONE,
-    coordinates: {
-      lat: order.pickupLocation.lat || 1.3521,
-      lng: order.pickupLocation.lng || 103.8198,
+    {
+      stopId: "1",
+      address: order.pickupLocation.address,
+      name: order.pickupLocation.name,
+      phone: process.env.BAKERY_PHONE,
+      coordinates: {
+        lat: Number(order.pickupLocation.lat || 1.3521),
+        lng: Number(order.pickupLocation.lng || 103.8198),
+      },
     },
-  },
-  {
-    stopId: "DROP",
-    address: order.deliveryAddress.addressText,
-    name: `${order.customer.firstName} ${order.customer.lastName}`,
-    phone: order.customer.phone.startsWith("+")
-      ? order.customer.phone
-      : `+${order.customer.phone}`,
-    coordinates: {
-      lat: order.deliveryAddress.lat,
-      lng: order.deliveryAddress.lng,
+    {
+      stopId: "2",
+      address: order.deliveryAddress.addressText,
+      name: `${order.customer.firstName} ${order.customer.lastName}`,
+      phone: order.customer.phone.startsWith("+")
+        ? order.customer.phone
+        : `+65${order.customer.phone}`,
+      coordinates: {
+        lat: Number(order.deliveryAddress.lat),
+        lng: Number(order.deliveryAddress.lng),
+      },
     },
-  },
-];
-
-
-  /* =========================
-     STEP 1 — QUOTATION
-  ========================== */
-
-  const quotePath = "/v3/quotations";
+  ];
 
   const quoteBody = {
-  data: {
-    serviceType: "MOTORCYCLE_SG",
-    language: "en_SG",
-    isRouteOptimized: false,
-
-    item: {
-      quantity: 1,
-      weight: 1,
-      categories: ["FOOD"],
+    data: {
+      scheduleAt,
+      serviceType: "MOTORCYCLE_SG",
+      language: "en_SG",
+      isRouteOptimized: false,
+      item: {
+        quantity: 1,
+        weight: 1,
+        categories: ["FOOD"],
+      },
+      stops,
     },
-
-    stops,
-  },
-};
+  };
 
 
   console.log("📦 QUOTE BODY =", quoteBody);
