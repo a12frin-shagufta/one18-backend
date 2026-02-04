@@ -65,10 +65,15 @@ paymentMethod: {
     fulfillmentDate: { type: String, required: true },
     fulfillmentTime: { type: String, required: true },
 
-   deliveryAddress: {
+   
+   
+deliveryAddress: {
   addressText: { type: String },
   postalCode: { type: String },
-  area: { type: String }, // ✅ NEW
+  area: { type: String },
+
+  lat: { type: Number },   // ✅ ADD
+  lng: { type: Number },   // ✅ ADD
 },
 
 
