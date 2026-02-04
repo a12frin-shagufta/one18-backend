@@ -1,26 +1,9 @@
 import axios from "axios";
 import { signLalamoveRequest } from "../utils/lalamoveSign.js";
-import moment from "moment-timezone";
-
 
 const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
-
-const SG_TZ = "Asia/Singapore";
-
-const fulfillmentDateTimeSG = moment.tz(
-  `${order.fulfillmentDate} ${order.fulfillmentTime}`,
-  "YYYY-MM-DD HH:mm",
-  SG_TZ
-);
-
-if (!fulfillmentDateTimeSG.isValid()) {
-  throw new Error("Invalid fulfillment datetime");
-}
-
-const scheduleAt = fulfillmentDateTimeSG.utc().toISOString();
-
 
 async function signAndCall(path, method, bodyObj) {
   const body = JSON.stringify(bodyObj);
