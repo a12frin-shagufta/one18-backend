@@ -56,11 +56,8 @@ export async function createLalamoveOrder(order) {
     timestamp,
   });
 
-  console.log("========== LALAMOVE DEBUG ==========");
-  console.log("BASE:", BASE);
-  console.log("MARKET:", MARKET);
-  console.log("BODY:", JSON.stringify(bodyObj, null, 2));
-  console.log("====================================");
+  console.log("🚚 LALAMOVE BODY =", JSON.stringify(bodyObj, null, 2));
+
 
   try {
     const res = await axios.post(`${BASE}${path}`, body, {
