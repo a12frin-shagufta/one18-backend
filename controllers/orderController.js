@@ -63,6 +63,21 @@ const bakeryPickupLocation = branchData
     if (!customer.firstName || !customer.lastName || !customer.phone) {
       return res.status(400).json({ message: "Customer details missing" });
     }
+    // ✅ Singapore phone validation
+const normalizedPhone = customer.phone.startsWith("+")
+  ? customer.phone
+  : `+65${customer.phone}`;
+
+// must be +65 + 8 digits
+if (!/^\+65\d{8}$/.test(normalizedPhone)) {
+  return res.status(400).json({
+    message: "Invalid Singapore phone format (must be +65XXXXXXXX)",
+  });
+}
+
+// overwrite with normalized version
+customer.phone = normalizedPhone;
+
 
     const lalamoveStatus =
   fulfillmentType === "pickup" ? "not_required" : "not_booked";
