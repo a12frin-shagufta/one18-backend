@@ -65,7 +65,7 @@ export async function createLalamoveOrder(order) {
 
   const quoteBody = {
     data: {
-      serviceType: "MOTORCYCLE_SG",
+      serviceType: "MOTORCYCLE",
       language: "en_SG",
       isRouteOptimized: false,
       item: {
