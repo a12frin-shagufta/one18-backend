@@ -15,14 +15,15 @@ export async function createLalamoveOrder(order) {
       specialRequests: [],
       stops: [
         {
-          address: order.pickupLocation.address,
-          name: order.pickupLocation.name,
-        },
-        {
-          address: order.deliveryAddress.addressText,
-          name: `${order.customer.firstName} ${order.customer.lastName}`,
-          phone: order.customer.phone,
-        },
+  address: order.deliveryAddress.addressText,
+  coordinates: {
+    lat: order.deliveryAddress.lat,
+    lng: order.deliveryAddress.lng
+  },
+  name: customerName,
+  phone: order.customer.phone
+}
+
       ],
     },
   };

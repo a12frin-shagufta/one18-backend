@@ -77,7 +77,10 @@ if (fulfillmentType === "delivery") {
     });
   }
 
-  const postalResult = await validateSingaporePostal(customer.postalCode);
+  validatedArea = postalResult.area;
+const deliveryLat = postalResult.lat;
+const deliveryLng = postalResult.lng;
+
 
   if (!postalResult.valid) {
     return res.status(400).json({
@@ -91,6 +94,7 @@ if (fulfillmentType === "delivery") {
 
     // ✅ NOW IN SINGAPORE TIME
     const nowSG = moment().tz(SG_TZ);
+
 
     // ✅ Selected datetime in SINGAPORE time
     const selectedDateTimeSG = moment
@@ -165,8 +169,10 @@ if (fulfillmentType === "delivery") {
     fulfillmentType === "delivery"
       ? {
           addressText: customer.address,
-          postalCode: customer.postalCode,
-          area: validatedArea, // ✅ NEW
+  postalCode: customer.postalCode,
+  area: validatedArea,
+  lat: deliveryLat,
+  lng: deliveryLng,
         }
       : null,
 
