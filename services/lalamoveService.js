@@ -15,7 +15,8 @@ export async function createLalamoveOrder(order) {
 
   const bodyObj = {
     data: {
-      serviceType: "MOTORCYCLE",
+      serviceType: "MOTORCYCLE_SG",
+
       language: "en_SG",
       specialRequests: [],
 
