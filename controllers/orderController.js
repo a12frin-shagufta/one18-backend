@@ -322,6 +322,11 @@ export const bookLalamove = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
+    if (order.paymentMethod === "paynow" && order.paymentStatus !== "paid") {
+  return res.status(400).json({
+    message: "Payment not verified yet — cannot book Lalamove",
+  });
+}
 
     if (order.fulfillmentType !== "delivery") {
       return res.status(400).json({ message: "Not a delivery order" });
