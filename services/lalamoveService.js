@@ -48,6 +48,18 @@ export async function createLalamoveOrder(order) {
     throw new Error("Delivery coordinates missing");
   }
 
+const minTime = moment().tz(SG_TZ).add(30, "minutes");
+
+if (moment(scheduleAt).isBefore(minTime)) {
+  throw new Error("Delivery time too soon for Lalamove");
+}
+
+
+  if (!/^\+65\d{8}$/.test(order.customer.phone)) {
+  throw new Error("Invalid customer phone for Lalamove");
+}
+
+
   const stops = [
   {
     stopId: "PICKUP",

@@ -30,6 +30,10 @@ export const createOrder = async (req, res) => {
 
 console.log("Incoming branch:", branch);
 
+console.log("\n================ NEW ORDER REQUEST ================");
+    console.log("📥 RAW BODY FROM CLIENT:");
+    console.log(JSON.stringify(req.body, null, 2));
+
 
 if (!["paynow", "stripe"].includes(paymentMethod)) {
   return res.status(400).json({
@@ -85,6 +89,10 @@ if (!/^\+65\d{8}$/.test(normalizedPhone)) {
 
 // overwrite with normalized version
 customer.phone = normalizedPhone;
+customer.phone = normalizedPhone;
+
+console.log("📞 NORMALIZED CUSTOMER:");
+console.log(JSON.stringify(customer, null, 2));
 
 
     const lalamoveStatus =
@@ -112,6 +120,13 @@ if (fulfillmentType === "delivery") {
       message: "Invalid Singapore postal code",
     });
   }
+  console.log("📍 DELIVERY GEO DATA:");
+console.log(JSON.stringify({
+  validatedArea,
+  deliveryLat,
+  deliveryLng
+}, null, 2));
+
 
   validatedArea = postalResult.area;
   deliveryLat = postalResult.lat;
@@ -184,6 +199,8 @@ if (fulfillmentType === "delivery") {
   deliveryLat,
   deliveryLng
 });
+console.log("📦 FINAL ORDER PAYLOAD:");
+console.log(JSON.stringify(orderPayloadForSave, null, 2));
 
    const order = await Order.create({
 branch: branchData?._id || null,
@@ -217,6 +234,12 @@ branch: branchData?._id || null,
   totalAmount,
   lalamoveStatus,
 });
+
+console.log("✅ SAVED ORDER DOCUMENT:");
+console.log(JSON.stringify(order.toObject(), null, 2));
+console.log("==================================================\n");
+
+
 
 if (paymentMethod === "paynow") {
   const ADMIN_EMAIL =
