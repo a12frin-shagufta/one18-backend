@@ -8,35 +8,36 @@ const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
 
 async function signAndCall(path, method, bodyObj) {
-  const body = bodyObj;
-
+  const bodyString = JSON.stringify(bodyObj); // ✅ FOR SIGNATURE
   const timestamp = Date.now().toString();
 
   const signature = signLalamoveRequest({
     method,
     path,
-    body,
+    body: bodyString, // ✅ string here
     timestamp,
   });
 
-  console.log("📡 Lalamove CALL →", method, path);  
- console.log("📡 Lalamove BODY →", JSON.stringify(bodyObj, null, 2));
+  console.log("📡 Lalamove CALL →", method, path);
+  console.log("📡 Lalamove BODY →", bodyString);
 
   try {
-        const res = await axios.post(`${BASE}${path}`, body, {
-            headers: {
-                "Content-Type": "application/json",
-                Market: MARKET,
-                Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
-            },
-        });
-        console.log("✅ Lalamove RESPONSE →", res.data);
-        return res;
-    } catch (err) {
-        console.log("❌ Lalamove ERROR STATUS →", err.response?.status);
-        console.log("❌ Lalamove ERROR DATA →", err.response?.data);
-        throw err;
-    }
+    const res = await axios.post(`${BASE}${path}`, bodyObj, { // ✅ object here
+      headers: {
+        "Content-Type": "application/json",
+        Market: MARKET,
+        Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
+      },
+    });
+
+    console.log("✅ Lalamove RESPONSE →", res.data);
+    return res;
+
+  } catch (err) {
+    console.log("❌ Lalamove ERROR STATUS →", err.response?.status);
+    console.log("❌ Lalamove ERROR DATA →", err.response?.data);
+    throw err;
+  }
 }
 
 
@@ -113,15 +114,18 @@ const quotePath = "/v3/quotations";
 const quoteBody = {
   data: {
     scheduleAt,
-    serviceType: "MOTORCYCLE_SG",
+    serviceType: "MOTORCYCLE",
     language: "en_SG",
     isRouteOptimized: false,
 
-    item: {
-  quantity: 1,
-  weight: 1,
-  categories: ["FOOD"],
-},
+    items: [
+  {
+    quantity: 1,
+    weight: 1,
+    categories: ["FOOD"],
+  }
+],
+
 
 
     stops,
