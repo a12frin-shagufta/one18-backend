@@ -127,7 +127,7 @@ const quotePath = "/v3/quotations";
 const quoteBody = {
   data: {
     scheduleAt,
-    serviceType: "VAN",
+    serviceType: "MOTORCYCLE",
     language: "en_SG",
     isRouteOptimized: false,
 
