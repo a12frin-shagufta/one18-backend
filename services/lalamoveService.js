@@ -8,7 +8,8 @@ const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
 
 async function signAndCall(path, method, bodyObj) {
-  const body = JSON.stringify(bodyObj);
+  const body = bodyObj;
+
   const timestamp = Date.now().toString();
 
   const signature = signLalamoveRequest({
@@ -54,7 +55,8 @@ export async function createLalamoveOrder(order) {
       "YYYY-MM-DD HH:mm",
       SG_TZ
     )
-    .toISOString();
+   .format("YYYY-MM-DDTHH:mm:ssZ")
+
 
 const minTime = moment().tz(SG_TZ).add(30, "minutes");
 
