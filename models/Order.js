@@ -57,10 +57,16 @@ paymentMethod: {
 },
 
     paymentStatus: {
-      type: String,
-      enum: ["pending", "paid", "failed"],
-      default: "pending",
-    },
+  type: String,
+  enum: [
+    "pending",
+    "pending_verification",   // ✅ ADD THIS
+    "paid",
+    "failed"
+  ],
+  default: "pending"
+},
+
 
     fulfillmentDate: { type: String, required: true },
     fulfillmentTime: { type: String, required: true },
