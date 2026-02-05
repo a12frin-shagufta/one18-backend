@@ -30,6 +30,9 @@ async function signAndCall(path, method, bodyObj) {
   console.log("📡 Lalamove CALL →", method, path);
   console.log("📡 Lalamove BODY →", bodyString);
 
+console.log("POSTMAN_AUTH_HEADER =",
+  `hmac ${API_KEY}:${timestamp}:${signature}`
+);
 
 
   try {
