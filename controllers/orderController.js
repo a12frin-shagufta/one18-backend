@@ -334,11 +334,12 @@ export const bookLalamove = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
+
     if (order.paymentMethod === "paynow" && order.paymentStatus !== "paid") {
-  return res.status(400).json({
-    message: "Payment not verified yet — cannot book Lalamove",
-  });
-}
+      return res.status(400).json({
+        message: "Payment not verified yet — cannot book Lalamove",
+      });
+    }
 
     if (order.fulfillmentType !== "delivery") {
       return res.status(400).json({ message: "Not a delivery order" });
@@ -357,15 +358,11 @@ export const bookLalamove = async (req, res) => {
     order.lalamoveStatus = "booking_requested";
     await order.save();
 
-    await createLalamoveOrder({
-  ...orderDoc.toObject(),
-  pickupLocation: bakeryPickupLocation,   // ✅ THIS LINE
-});
+    // ✅ THIS IS THE ONLY CALL YOU NEED
+    const result = await createLalamoveOrder(order);
 
-
-   order.lalamoveBookingId = result.data.data.orderId;
-order.lalamoveTrackingLink = result.data.data.shareLink;
-
+    order.lalamoveBookingId = result.data.orderId;
+    order.lalamoveTrackingLink = result.data.shareLink;
     order.lalamoveStatus = "booked";
 
     await order.save();
@@ -385,6 +382,7 @@ order.lalamoveTrackingLink = result.data.data.shareLink;
     });
   }
 };
+
 
 export const markOrderPaidByCustomer = async (req, res) => {
   try {
