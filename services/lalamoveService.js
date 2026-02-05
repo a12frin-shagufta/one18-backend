@@ -40,6 +40,9 @@ async function signAndCall(path, method, bodyObj) {
   }
 }
 
+console.log("🔐 SIGN RAW =", timestamp + method + path + bodyString);
+console.log("🔐 SIGNATURE =", signature);
+
 
 export async function createLalamoveOrder(order) {
   if (!order.pickupLocation || !order.deliveryAddress) {
