@@ -134,12 +134,13 @@ const quoteBody = {
     language: "en_SG",
     isRouteOptimized: false,
 
-    item: {  // ← Fix: change "items" → "item" and remove array []
-      quantity: 1,
-      weight: 1,  // Consider making realistic (e.g. 3–5 for food parcels)
-      categories: ["FOOD"],
-    },
-
+    items: [
+  {
+    quantity: 1,
+    weight: 1,
+    categories: ["FOOD"],
+  }
+],
 
 
     stops,
