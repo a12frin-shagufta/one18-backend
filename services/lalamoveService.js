@@ -137,12 +137,13 @@ const quoteBody = {
     },
 
     items: [
-      {
-        quantity: 1,
-        weight: 1,
-        categories: ["FOOD"],
-      }
-    ],
+  {
+    quantity: 1,
+    weight: 1,
+    categories: ["FOOD"],
+    description: "Bakery food order"
+  }
+],
 
     stops,
   },
