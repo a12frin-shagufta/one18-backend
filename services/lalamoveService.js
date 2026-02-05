@@ -90,9 +90,14 @@ if (moment(scheduleAt).isBefore(minTime)) {
      STEP 1 — QUOTATION
   ========================== */
 
-  const quotePath = "/v3/quotations";
+  /* =========================
+   STEP 1 — QUOTATION
+========================= */
 
-  const scheduleAt = moment
+const quotePath = "/v3/quotations";
+
+/* ✅ DEFINE FIRST */
+const scheduleAt = moment
   .tz(
     `${order.fulfillmentDate} ${order.fulfillmentTime}`,
     "YYYY-MM-DD HH:mm",
@@ -100,7 +105,8 @@ if (moment(scheduleAt).isBefore(minTime)) {
   )
   .toISOString();
 
-  const quoteBody = {
+/* ✅ THEN USE */
+const quoteBody = {
   data: {
     scheduleAt,
     serviceType: "MOTORCYCLE",
@@ -116,6 +122,7 @@ if (moment(scheduleAt).isBefore(minTime)) {
     stops,
   },
 };
+
 
 
   console.log("📦 QUOTE BODY =", quoteBody);
