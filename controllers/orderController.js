@@ -52,6 +52,7 @@ if (!["paynow", "stripe"].includes(paymentMethod)) {
 if (branch) {
   branchData = await Branch.findById(branch);
 }
+console.log("🏬 BRANCH RAW DOC =", JSON.stringify(branchData, null, 2));
 
 const bakeryPickupLocation = branchData
   ? {
