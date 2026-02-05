@@ -56,22 +56,21 @@ console.log("🏬 BRANCH RAW DOC =", JSON.stringify(branchData, null, 2));
 if (!branchData) {
   throw new Error("Branch not found");
 }
-const bakeryPickupLocation = branchData
-  ? {
-      name: branchData.name,
-      address: branchData.address,
-      lat:
-        branchData.location?.lat ??
-        branchData.lat ??
-        branchData.coordinates?.lat,
-      lng:
-        branchData.location?.lng ??
-        branchData.lng ??
-        branchData.coordinates?.lng,
-    }
-  : null;
+const loc = branchData.location || {};
+
+const bakeryPickupLocation = {
+  name: branchData.name,
+  address: branchData.address,
+  lat: Number(loc.lat),
+  lng: Number(loc.lng),
+};
 
 console.log("🏬 PICKUP GEO FINAL =", bakeryPickupLocation);
+
+if (!bakeryPickupLocation.lat || !bakeryPickupLocation.lng) {
+  throw new Error("Branch missing coordinates in DB");
+}
+
 
 
     if (!fulfillmentDate || !fulfillmentTime) {
