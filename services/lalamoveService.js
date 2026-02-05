@@ -117,7 +117,7 @@ if (!order.pickupLocation.lat || !order.pickupLocation.lng) {
    STEP 1 — QUOTATION
 ========================= */
 
-const quotePath = "/quotations";
+const quotePath = "/v3/quotations";
 
 /* ✅ DEFINE FIRST */
 
@@ -167,7 +167,7 @@ const quoteBody = {
      STEP 2 — CREATE ORDER
   ========================== */
 
- const orderPath = "/orders";
+  const orderPath = "/v3/orders";
 
   const orderBody = {
     data: {
