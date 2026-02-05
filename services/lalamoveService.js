@@ -89,10 +89,9 @@ if (moment(scheduleAt).isBefore(minTime)) {
     name: order.pickupLocation.name,
     phone: process.env.BAKERY_PHONE,
     coordinates: {
-      lat: order.pickupLocation.lat || 1.3521,
-      lng: order.pickupLocation.lng || 103.8198,
+      lat: order.pickupLocation.lat,    // ← Bakery/branch
+      lng: order.pickupLocation.lng,
     },
-    
   },
   {
     stopId: "DROP",
@@ -102,12 +101,13 @@ if (moment(scheduleAt).isBefore(minTime)) {
       ? order.customer.phone
       : `+${order.customer.phone}`,
     coordinates: {
-      lat: order.deliveryAddress.lat,
+      lat: order.deliveryAddress.lat,   // ← Customer
       lng: order.deliveryAddress.lng,
     },
   },
 ];
 console.log("📞 BAKERY_PHONE =", process.env.BAKERY_PHONE);
+console.log("🛑 STOPS PAYLOAD:", JSON.stringify(stops, null, 2));
 
 if (!order.pickupLocation.lat || !order.pickupLocation.lng) {
   throw new Error("Pickup coordinates required from branch");
