@@ -62,7 +62,7 @@ export async function createLalamoveOrder(order) {
     throw new Error("Delivery coordinates missing");
   }
 
-const scheduleAt = moment().add(45, "minutes").toISOString();
+const scheduleAt = moment().add(2, "hours").toISOString();
   // ← USE THIS
 
 
