@@ -129,18 +129,23 @@ const quoteBody = {
     language: "en_SG",
     isRouteOptimized: false,
 
-    items: [
-  {
-    quantity: 1,
-    weight: 1,
-    categories: ["FOOD"],
-  }
-],
+    requesterContact: {
+      name: "Bakery",
+      phone: process.env.BAKERY_PHONE
+    },
 
+    items: [
+      {
+        quantity: 1,
+        weight: 1,
+        categories: ["FOOD"],
+      }
+    ],
 
     stops,
   },
 };
+
 
 
 
