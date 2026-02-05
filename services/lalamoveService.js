@@ -115,13 +115,12 @@ const quoteBody = {
     language: "en_SG",
     isRouteOptimized: false,
 
-    items: [
-      {
-        quantity: 1,
-        weight: 1,
-        categories: ["FOOD"],
-      },
-    ],
+    item: {
+  quantity: 1,
+  weight: 1,
+  categories: ["FOOD"],
+},
+
 
     stops,
   },
