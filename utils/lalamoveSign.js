@@ -1,7 +1,8 @@
 import crypto from "crypto";
 
 export function signLalamoveRequest({ method, path, body, timestamp }) {
-  const secret = process.env.LALAMOVE_SECRET;
+const secret = process.env.LALAMOVE_API_SECRET;
+
 
   const rawSignature =
     `${timestamp}\r\n` +
