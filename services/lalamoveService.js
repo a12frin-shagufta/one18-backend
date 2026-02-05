@@ -6,6 +6,12 @@ const SG_TZ = "Asia/Singapore";
 const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
+console.log("🌍 LALAMOVE CONFIG →", {
+  BASE,
+  MARKET,
+  KEY: API_KEY?.slice(0, 10) + "...",
+});
+
 
 async function signAndCall(path, method, bodyObj) {
   const bodyString = JSON.stringify(bodyObj); // ✅ FOR SIGNATURE
