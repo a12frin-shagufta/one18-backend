@@ -63,6 +63,9 @@ lng: branchData.location?.lng,
     }
   : null;
 
+  console.log("🏬 PICKUP GEO →", bakeryPickupLocation);
+
+
     if (!fulfillmentDate || !fulfillmentTime) {
       return res.status(400).json({ message: "Please select date and time" });
     }
