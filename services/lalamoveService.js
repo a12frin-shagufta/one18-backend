@@ -92,6 +92,7 @@ if (moment(scheduleAt).isBefore(minTime)) {
       lat: order.pickupLocation.lat || 1.3521,
       lng: order.pickupLocation.lng || 103.8198,
     },
+    
   },
   {
     stopId: "DROP",
@@ -108,7 +109,9 @@ if (moment(scheduleAt).isBefore(minTime)) {
 ];
 console.log("📞 BAKERY_PHONE =", process.env.BAKERY_PHONE);
 
-
+if (!order.pickupLocation.lat || !order.pickupLocation.lng) {
+  throw new Error("Pickup coordinates required from branch");
+}
 
   /* =========================
      STEP 1 — QUOTATION
@@ -127,17 +130,15 @@ const quotePath = "/v3/quotations";
 const quoteBody = {
   data: {
     scheduleAt,
-    serviceType: "MOTORCYCLE_SG",
+    serviceType: "MOTORCYCLE",
     language: "en_SG",
     isRouteOptimized: false,
 
-    items: [
-  {
-    quantity: 1,
-    weight: 1,
-    categories: ["FOOD"],
-  }
-],
+    item: {  // ← Fix: change "items" → "item" and remove array []
+      quantity: 1,
+      weight: 1,  // Consider making realistic (e.g. 3–5 for food parcels)
+      categories: ["FOOD"],
+    },
 
 
 
