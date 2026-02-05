@@ -338,3 +338,22 @@ export const bookLalamove = async (req, res) => {
     });
   }
 };
+
+export const markOrderPaidByCustomer = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { paymentStatus: "pending_verification" },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json({ success: true, order });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
