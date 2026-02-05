@@ -58,13 +58,18 @@ const bakeryPickupLocation = branchData
   ? {
       name: branchData.name,
       address: branchData.address,
-      lat: branchData.location?.lat,
-lng: branchData.location?.lng,
-  
+      lat:
+        branchData.location?.lat ??
+        branchData.lat ??
+        branchData.coordinates?.lat,
+      lng:
+        branchData.location?.lng ??
+        branchData.lng ??
+        branchData.coordinates?.lng,
     }
   : null;
 
-  console.log("🏬 PICKUP GEO →", bakeryPickupLocation);
+console.log("🏬 PICKUP GEO FINAL =", bakeryPickupLocation);
 
 
     if (!fulfillmentDate || !fulfillmentTime) {
