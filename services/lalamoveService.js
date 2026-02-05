@@ -137,17 +137,21 @@ const quoteBody = {
     },
 
     items: [
-  {
-    quantity: 1,
-    weight: 1,
-    categories: ["FOOD"],
-    description: "Bakery food order"
-  }
-],
+      {
+        quantity: 1,
+        description: "Bakery order",
+        categories: ["FOOD"],
+        weight: {
+          value: "1",
+          unit: "KG"
+        }
+      }
+    ],   // ← 🔥 THIS COMMA WAS MISSING
 
     stops,
   },
 };
+
 
 
 
