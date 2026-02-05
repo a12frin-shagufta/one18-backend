@@ -48,6 +48,14 @@ export async function createLalamoveOrder(order) {
     throw new Error("Delivery coordinates missing");
   }
 
+  const scheduleAt = moment
+    .tz(
+      `${order.fulfillmentDate} ${order.fulfillmentTime}`,
+      "YYYY-MM-DD HH:mm",
+      SG_TZ
+    )
+    .toISOString();
+
 const minTime = moment().tz(SG_TZ).add(30, "minutes");
 
 if (moment(scheduleAt).isBefore(minTime)) {
@@ -97,13 +105,7 @@ if (moment(scheduleAt).isBefore(minTime)) {
 const quotePath = "/v3/quotations";
 
 /* ✅ DEFINE FIRST */
-const scheduleAt = moment
-  .tz(
-    `${order.fulfillmentDate} ${order.fulfillmentTime}`,
-    "YYYY-MM-DD HH:mm",
-    SG_TZ
-  )
-  .toISOString();
+
 
 /* ✅ THEN USE */
 const quoteBody = {
