@@ -64,9 +64,15 @@ const bakeryPickupLocation = branchData
       return res.status(400).json({ message: "Customer details missing" });
     }
     // ✅ Singapore phone validation
-const normalizedPhone = customer.phone.startsWith("+")
-  ? customer.phone
-  : `+65${customer.phone}`;
+const digitsOnly = customer.phone.replace(/\D/g, "");
+
+let normalizedPhone = digitsOnly;
+
+if (!normalizedPhone.startsWith("65")) {
+  normalizedPhone = "65" + normalizedPhone;
+}
+
+normalizedPhone = "+" + normalizedPhone;
 
 // must be +65 + 8 digits
 if (!/^\+65\d{8}$/.test(normalizedPhone)) {
