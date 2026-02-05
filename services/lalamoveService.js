@@ -17,9 +17,13 @@ async function signAndCall(path, method, bodyObj) {
     body: bodyString, // ✅ string here
     timestamp,
   });
+   console.log("🔐 SIGN RAW =", timestamp + method + path + bodyString);
+  console.log("🔐 SIGNATURE =", signature);
 
   console.log("📡 Lalamove CALL →", method, path);
   console.log("📡 Lalamove BODY →", bodyString);
+
+
 
   try {
     const res = await axios.post(`${BASE}${path}`, bodyObj, { // ✅ object here
@@ -40,8 +44,6 @@ async function signAndCall(path, method, bodyObj) {
   }
 }
 
-console.log("🔐 SIGN RAW =", timestamp + method + path + bodyString);
-console.log("🔐 SIGNATURE =", signature);
 
 
 export async function createLalamoveOrder(order) {
