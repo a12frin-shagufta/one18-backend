@@ -24,7 +24,7 @@ async function signAndCall(path, method, bodyObj) {
     body: bodyString, // ✅ string here
     timestamp,
   });
-   console.log("🔐 SIGN RAW =", timestamp + method + path + bodyString);
+  
   console.log("🔐 SIGNATURE =", signature);
 
   console.log("📡 Lalamove CALL →", method, path);

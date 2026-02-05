@@ -1,20 +1,19 @@
 import crypto from "crypto";
 
-export function signLalamoveRequest({ method, path, body, timestamp }) {
-  const secret = process.env.LALAMOVE_API_SECRET;
+const SECRET = process.env.LALAMOVE_API_SECRET;
 
-  if (!secret) {
+export function signLalamoveRequest({ method, path, body, timestamp }) {
+  if (!SECRET) {
     throw new Error("LALAMOVE_API_SECRET missing");
   }
 
-  const raw =
-`${timestamp}\r\n${method.toUpperCase()}\r\n${path}\r\n\r\n${body || ""}`;
+  const raw = `${timestamp}\r\n${method.toUpperCase()}\r\n${path}\r\n\r\n${body}`;
 
-  console.log("🔥 NEW SIGN FORMAT 🔥");
+  console.log("🔥 REAL SIGN STRING 🔥");
   console.log(raw);
 
   return crypto
-    .createHmac("sha256", secret)
+    .createHmac("sha256", SECRET)
     .update(raw)
     .digest("hex");
 }
