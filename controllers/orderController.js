@@ -53,7 +53,9 @@ if (branch) {
   branchData = await Branch.findById(branch);
 }
 console.log("🏬 BRANCH RAW DOC =", JSON.stringify(branchData, null, 2));
-
+if (!branchData) {
+  throw new Error("Branch not found");
+}
 const bakeryPickupLocation = branchData
   ? {
       name: branchData.name,
@@ -355,7 +357,11 @@ export const bookLalamove = async (req, res) => {
     order.lalamoveStatus = "booking_requested";
     await order.save();
 
-    const result = await createLalamoveOrder(order);
+    await createLalamoveOrder({
+  ...orderDoc.toObject(),
+  pickupLocation: bakeryPickupLocation,   // ✅ THIS LINE
+});
+
 
    order.lalamoveBookingId = result.data.data.orderId;
 order.lalamoveTrackingLink = result.data.data.shareLink;
