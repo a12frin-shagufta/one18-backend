@@ -1,5 +1,7 @@
 import axios from "axios";
 import { signLalamoveRequest } from "../utils/lalamoveSign.js";
+import moment from "moment-timezone";
+const SG_TZ = "Asia/Singapore";
 
 const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
@@ -77,6 +79,14 @@ export async function createLalamoveOrder(order) {
   ========================== */
 
   const quotePath = "/v3/quotations";
+
+  const scheduleAt = moment
+  .tz(
+    `${order.fulfillmentDate} ${order.fulfillmentTime}`,
+    "YYYY-MM-DD HH:mm",
+    SG_TZ
+  )
+  .toISOString();
 
   const quoteBody = {
   data: {

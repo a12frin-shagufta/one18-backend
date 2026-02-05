@@ -78,9 +78,12 @@ deliveryAddress: {
 
 
     pickupLocation: {
-      name: { type: String },
-      address: { type: String },
-    },
+  name: String,
+  address: String,
+  lat: Number,
+  lng: Number,
+},
+
 
     items: [
       {

@@ -53,6 +53,8 @@ const bakeryPickupLocation = branchData
   ? {
       name: branchData.name,
       address: branchData.address,
+       lat: branchData.lat,   // ✅ add
+      lng: branchData.lng,   
     }
   : null;
 
@@ -317,8 +319,9 @@ export const bookLalamove = async (req, res) => {
 
     const result = await createLalamoveOrder(order);
 
-    order.lalamoveBookingId = result.data.orderId;
-    order.lalamoveTrackingLink = result.data.shareLink;
+   order.lalamoveBookingId = result.data.data.orderId;
+order.lalamoveTrackingLink = result.data.data.shareLink;
+
     order.lalamoveStatus = "booked";
 
     await order.save();
