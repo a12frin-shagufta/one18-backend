@@ -57,8 +57,9 @@ const bakeryPickupLocation = branchData
   ? {
       name: branchData.name,
       address: branchData.address,
-       lat: branchData.lat,   // ✅ add
-      lng: branchData.lng,   
+      lat: branchData.location?.lat,
+lng: branchData.location?.lng,
+  
     }
   : null;
 
