@@ -59,19 +59,37 @@ if (!branchData) {
   throw new Error("Branch not found");
 }
 const loc = branchData.location || {};
+const coords = branchData.coordinates || {};
+
+const lat =
+  loc.lat ??
+  coords.lat ??
+  loc.coordinates?.lat ??
+  loc.coordinates?.[1];
+
+const lng =
+  loc.lng ??
+  coords.lng ??
+  loc.coordinates?.lng ??
+  loc.coordinates?.[0];
 
 const bakeryPickupLocation = {
   name: branchData.name,
   address: branchData.address,
-  lat: Number(loc.lat),
-  lng: Number(loc.lng),
+  lat: Number(lat),
+  lng: Number(lng),
 };
 
 console.log("🏬 PICKUP GEO FINAL =", bakeryPickupLocation);
 
+
+console.log("🏬 PICKUP GEO FINAL =", bakeryPickupLocation);
+
 if (!bakeryPickupLocation.lat || !bakeryPickupLocation.lng) {
-  throw new Error("Branch missing coordinates in DB");
+  console.log("❌ Branch missing lat/lng — cannot continue");
+  throw new Error("Branch coordinates missing");
 }
+
 
 
 
