@@ -150,12 +150,13 @@ const quoteBody = {
       }
     ],
     items: [
-      {
-        quantity: 1,
-        description: "Food",
-        categories: ["FOOD"]
-      }
-    ]
+  {
+    quantity: 1,
+    description: "Food",
+    categories: ["FOOD"]
+  }
+],
+
   }
 };
 
