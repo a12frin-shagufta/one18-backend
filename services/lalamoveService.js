@@ -3,6 +3,7 @@ import { signLalamoveRequest } from "../utils/lalamoveSign.js";
 import moment from "moment-timezone";
 const SG_TZ = "Asia/Singapore";
 
+
 const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
