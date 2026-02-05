@@ -17,6 +17,7 @@ import devRoutes from "./routes/devRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import paymentRoute from "./routes/paymentRoute.js";
 import postalRoute from "./routes/postalRoute.js";
+import PaynowRoute from "./routes/paynow.js";
 
 
 
@@ -91,6 +92,8 @@ app.use("/api/dev", devRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/payment", paymentRoute);
 app.use("/api/postal", postalRoute);
+app.use("/api/paynow", PaynowRoute);
+
 
 
 /* =====================
