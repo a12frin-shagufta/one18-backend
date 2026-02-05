@@ -80,28 +80,29 @@ if (moment(scheduleAt).isBefore(minTime)) {
 
   const stops = [
   {
-    stopId: "PICKUP",
     address: order.pickupLocation.address,
-    name: order.pickupLocation.name,
-    phone: process.env.BAKERY_PHONE,
     coordinates: {
-      lat: order.pickupLocation.lat,    // ← Bakery/branch
-      lng: order.pickupLocation.lng,
+      lat: Number(order.pickupLocation.lat),
+      lng: Number(order.pickupLocation.lng),
+    },
+    contact: {
+      name: order.pickupLocation.name,
+      phone: process.env.BAKERY_PHONE,
     },
   },
   {
-    stopId: "DROP",
     address: order.deliveryAddress.addressText,
-    name: `${order.customer.firstName} ${order.customer.lastName}`,
-    phone: order.customer.phone.startsWith("+")
-      ? order.customer.phone
-      : `+${order.customer.phone}`,
     coordinates: {
-      lat: order.deliveryAddress.lat,   // ← Customer
-      lng: order.deliveryAddress.lng,
+      lat: Number(order.deliveryAddress.lat),
+      lng: Number(order.deliveryAddress.lng),
+    },
+    contact: {
+      name: `${order.customer.firstName} ${order.customer.lastName}`,
+      phone: order.customer.phone,
     },
   },
 ];
+
 console.log("📞 BAKERY_PHONE =", process.env.BAKERY_PHONE);
 console.log("🛑 STOPS PAYLOAD:", JSON.stringify(stops, null, 2));
 
