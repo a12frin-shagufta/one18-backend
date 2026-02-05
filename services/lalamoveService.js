@@ -61,13 +61,8 @@ export async function createLalamoveOrder(order) {
     throw new Error("Delivery coordinates missing");
   }
 
-  const scheduleAt = moment
-    .tz(
-      `${order.fulfillmentDate} ${order.fulfillmentTime}`,
-      "YYYY-MM-DD HH:mm",
-      SG_TZ
-    )
-    .toISOString();   // ← USE THIS
+const scheduleAt = moment().add(45, "minutes").toISOString();
+  // ← USE THIS
 
 
 const minTime = moment().tz(SG_TZ).add(30, "minutes");
