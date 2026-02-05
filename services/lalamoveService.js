@@ -56,7 +56,7 @@ export async function createLalamoveOrder(order) {
       "YYYY-MM-DD HH:mm",
       SG_TZ
     )
-   .format("YYYY-MM-DDTHH:mm:ssZ")
+    .toISOString();   // ← USE THIS
 
 
 const minTime = moment().tz(SG_TZ).add(30, "minutes");
@@ -95,6 +95,8 @@ if (moment(scheduleAt).isBefore(minTime)) {
     },
   },
 ];
+console.log("📞 BAKERY_PHONE =", process.env.BAKERY_PHONE);
+
 
 
   /* =========================
@@ -114,7 +116,7 @@ const quotePath = "/v3/quotations";
 const quoteBody = {
   data: {
     scheduleAt,
-    serviceType: "MOTORCYCLE",
+    serviceType: "MOTORCYCLE_SG",
     language: "en_SG",
     isRouteOptimized: false,
 
