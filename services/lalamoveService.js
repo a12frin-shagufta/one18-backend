@@ -83,6 +83,7 @@ if (moment(scheduleAt).isBefore(minTime)) {
 
   const stops = [
   {
+    stopId: "STP_001",
     address: order.pickupLocation.address,
     coordinates: {
       lat: Number(order.pickupLocation.lat),
@@ -94,6 +95,7 @@ if (moment(scheduleAt).isBefore(minTime)) {
     },
   },
   {
+    stopId: "STP_002",
     address: order.deliveryAddress.addressText,
     coordinates: {
       lat: Number(order.deliveryAddress.lat),
@@ -105,6 +107,7 @@ if (moment(scheduleAt).isBefore(minTime)) {
     },
   },
 ];
+
 
 console.log("📞 BAKERY_PHONE =", process.env.BAKERY_PHONE);
 console.log("🛑 STOPS PAYLOAD:", JSON.stringify(stops, null, 2));
@@ -129,7 +132,8 @@ const quotePath = "/v3/quotations";
 /* ✅ THEN USE */
 const quoteBody = {
   data: {
-    serviceType: "MOTORCYCLE",
+    scheduleAt,   // ✅ ADD THIS BACK
+    serviceType: "VAN",
     language: "en_SG",
     isRouteOptimized: false,
 
@@ -142,17 +146,18 @@ const quoteBody = {
 
     items: [
       {
-        quantity: 1,
+        quantity: "1",
         description: "Food",
         categories: ["FOOD"],
         weight: {
-          value: 1,
+          value: "1",
           unit: "KG"
         }
       }
     ]
   }
 };
+
 
 
 
