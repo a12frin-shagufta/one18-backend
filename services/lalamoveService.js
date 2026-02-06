@@ -130,55 +130,57 @@ const quotePath = "/v3/quotations";
 
 
 /* ✅ THEN USE */
+// ... inside createLalamoveOrder ...
+
 const quoteBody = {
   data: {
-    // 1. Try commenting this out first to verify the structure works
-    // scheduleAt: scheduleAt, 
-    
+    // scheduleAt, // Keep commented for first success test
     serviceType: "MOTORCYCLE",
     language: "en_SG",
     isRouteOptimized: false,
-
     requesterContact: {
       name: "Bakery",
-      phone: process.env.BAKERY_PHONE // Must be +65XXXXXXXX
+      phone: process.env.BAKERY_PHONE
     },
-
     stops: [
       {
-        stopId: "STP_001", // ✅ Mandatory in v3
-        address: "Tampines Street 81, Singapore",
-        coordinates: { lat: 1.3526, lng: 103.9448 },
+        stopId: "STP_001",
+        address: order.pickupLocation.address,
+        coordinates: { 
+          lat: order.pickupLocation.lat.toString(), // ✅ Convert to string here
+          lng: order.pickupLocation.lng.toString()  // ✅ Convert to string here
+        },
         contact: {
-          name: "Bakery",
+          name: order.pickupLocation.name,
           phone: process.env.BAKERY_PHONE
         }
       },
       {
-        stopId: "STP_002", // ✅ Mandatory in v3
-        address: "10 Tampines Avenue 1",
-        coordinates: { lat: 1.354396, lng: 103.945206 },
+        stopId: "STP_002",
+        address: order.deliveryAddress.addressText,
+        coordinates: { 
+          lat: order.deliveryAddress.lat.toString(), // ✅ Convert to string here
+          lng: order.deliveryAddress.lng.toString()  // ✅ Convert to string here
+        },
         contact: {
-          name: "Customer Name",
-          phone: "+6591111712" 
+          name: `${order.customer.firstName} ${order.customer.lastName}`,
+          phone: order.customer.phone
         }
       }
     ],
-
     items: [
       {
         quantity: "1",
         description: "Bakery Food Delivery",
-        categories: ["FOOD"], // ✅ Change from "DELIVERY" to "FOOD"
+        categories: ["FOOD"],
         weight: {
-          value: "1", // ✅ Must be String
+          value: "1",
           unit: "KG"
         }
       }
     ]
   }
 };
-
 
 
 
