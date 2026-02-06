@@ -43,6 +43,7 @@ export const createFestival = async (req, res) => {
     });
 
     sendNewsletterToAll({
+      
   subject: `🎉 New Festival Menu: ${festival.name}`,
   html: `
     <h2>New Festival Collection Live!</h2>

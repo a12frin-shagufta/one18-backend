@@ -2,6 +2,7 @@ import Newsletter from "../models/newsletterModel.js";
 import { sendEmail } from "./sendEmail.js"; // adjust path if needed
 
 export const sendNewsletterToAll = async ({ subject, html }) => {
+      console.log("📬 NEWSLETTER TRIGGERED:", subject);
   try {
     const subs = await Newsletter.find({}, "email");
     const emails = subs.map(s => s.email);
