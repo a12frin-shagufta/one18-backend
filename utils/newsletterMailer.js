@@ -3,6 +3,8 @@ import { sendEmail } from "../utils/sendEmail.js";
 
 export const sendNewsletterToAll = async ({ subject, html }) => {
       console.log("📬 NEWSLETTER TRIGGERED:", subject);
+      console.log("🔥 NEWSLETTER MAILER VERSION 2 LOADED");
+
   try {
     const subs = await Newsletter.find({}, "email");
     const emails = subs.map(s => s.email);
