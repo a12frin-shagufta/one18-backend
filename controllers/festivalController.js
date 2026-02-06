@@ -43,14 +43,26 @@ export const createFestival = async (req, res) => {
     });
 
     sendNewsletterToAll({
-      
-  subject: `🎉 New Festival Menu: ${festival.name}`,
+  subject: `New festival menu — ${festival.name}`,
   html: `
-    <h2>New Festival Collection Live!</h2>
-    <p>We just launched <b>${festival.name}</b> specials.</p>
-    <p>Check it out now on our website 🍰</p>
+    <h2>New Festival Collection</h2>
+
+    <p>We’ve launched our <b>${festival.name}</b> specials 🎉</p>
+
+    <p>Fresh pastries and limited items are now available.</p>
+
+    <p>
+      Explore now → https://one18bakery.com
+    </p>
+
+    <hr/>
+
+    <p style="font-size:12px;color:#666">
+      You subscribed to ONE18 Bakery updates.
+    </p>
   `
 });
+
 
     res.json(festival);
   } catch (err) {

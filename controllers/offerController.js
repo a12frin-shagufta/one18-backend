@@ -59,12 +59,34 @@ export const createOffer = async (req, res) => {
     const offer = await Offer.create(offerData);
 
     sendNewsletterToAll({
-  subject: `💸 New Offer: ${offer.title}`,
+  subject: `New bakery offer — ${offer.title}`,
   html: `
-    <h2>Special Offer Live!</h2>
-    <p>${offer.title}</p>
-    <p>Discount: ${offer.value}${offer.type === "percent" ? "%" : ""}</p>
-    <p>Limited time only — order now 🎂</p>
+    <h2>ONE18 Bakery Update</h2>
+
+    <p>Hello 👋</p>
+
+    <p>We’ve just launched a new limited-time offer:</p>
+
+    <h3>${offer.title}</h3>
+
+    <p>
+      Discount: <b>${offer.value}${offer.type === "percent" ? "%" : ""}</b>
+    </p>
+
+    <p>
+      Visit our website to explore the menu and order online.
+    </p>
+
+    <p>
+      👉 https://one18bakery.com
+    </p>
+
+    <hr/>
+
+    <p style="font-size:12px;color:#666">
+      You received this email because you subscribed to ONE18 Bakery updates.
+      Singapore.
+    </p>
   `
 });
 
