@@ -53,11 +53,14 @@ if (branch) {
   branchData = await Branch.findById(branch);
 }
 
-console.log("🏬 BRANCH DOC FULL =", JSON.stringify(branchData.toObject(), null, 2));
+
 
 if (!branchData) {
-  throw new Error("Branch not found");
+  return res.status(400).json({ message: "Branch not found" });
 }
+
+console.log("🏬 BRANCH DOC FULL =", JSON.stringify(branchData.toObject(), null, 2));
+
 const loc = branchData.location || {};
 const coords = branchData.coordinates || {};
 
@@ -86,8 +89,9 @@ console.log("🏬 PICKUP GEO FINAL =", bakeryPickupLocation);
 console.log("🏬 PICKUP GEO FINAL =", bakeryPickupLocation);
 
 if (!bakeryPickupLocation.lat || !bakeryPickupLocation.lng) {
-  console.log("❌ Branch missing lat/lng — cannot continue");
-  throw new Error("Branch coordinates missing");
+  return res.status(400).json({
+    message: "Branch coordinates missing"
+  });
 }
 
 
