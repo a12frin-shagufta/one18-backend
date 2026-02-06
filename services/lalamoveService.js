@@ -131,34 +131,29 @@ const quoteBody = {
   data: {
     serviceType: "MOTORCYCLE",
     language: "en_SG",
-    stops: [
+    isRouteOptimized: false,
+
+    requesterContact: {
+      name: "Bakery",
+      phone: process.env.BAKERY_PHONE
+    },
+
+    stops,
+
+    items: [
       {
-        address: "Tampines Street 81, Singapore",
-        coordinates: { lat: 1.3526, lng: 103.9448 },
-        contact: {
-          name: "Bakery",
-          phone: "+6591111712"
-        }
-      },
-      {
-        address: "10 Tampines Avenue 1, Singapore",
-        coordinates: { lat: 1.354396, lng: 103.945206 },
-        contact: {
-          name: "Customer",
-          phone: "+6591111712"
+        quantity: 1,
+        description: "Food",
+        categories: ["FOOD"],
+        weight: {
+          value: 1,
+          unit: "KG"
         }
       }
-    ],
-    items: [
-  {
-    quantity: 1,
-    description: "Food",
-    categories: ["FOOD"]
-  }
-],
-
+    ]
   }
 };
+
 
 
 
