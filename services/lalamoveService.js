@@ -134,52 +134,25 @@ const quotePath = "/v3/quotations";
 
 const quoteBody = {
   data: {
-    // scheduleAt, // Keep commented for first success test
     serviceType: "MOTORCYCLE",
     language: "en_SG",
-    isRouteOptimized: false,
-    requesterContact: {
-      name: "Bakery",
-      phone: process.env.BAKERY_PHONE
-    },
     stops: [
       {
-        stopId: "STP_001",
         address: order.pickupLocation.address,
-        coordinates: { 
-          lat: order.pickupLocation.lat.toString(), // ✅ Convert to string here
-          lng: order.pickupLocation.lng.toString()  // ✅ Convert to string here
+        coordinates: {
+          lat: order.pickupLocation.lat.toString(),
+          lng: order.pickupLocation.lng.toString(),
         },
-        contact: {
-          name: order.pickupLocation.name,
-          phone: process.env.BAKERY_PHONE
-        }
       },
       {
-        stopId: "STP_002",
         address: order.deliveryAddress.addressText,
-        coordinates: { 
-          lat: order.deliveryAddress.lat.toString(), // ✅ Convert to string here
-          lng: order.deliveryAddress.lng.toString()  // ✅ Convert to string here
+        coordinates: {
+          lat: order.deliveryAddress.lat.toString(),
+          lng: order.deliveryAddress.lng.toString(),
         },
-        contact: {
-          name: `${order.customer.firstName} ${order.customer.lastName}`,
-          phone: order.customer.phone
-        }
-      }
+      },
     ],
-    items: [
-      {
-        quantity: "1",
-        description: "Bakery Food Delivery",
-        categories: ["FOOD"],
-        weight: {
-          value: "1",
-          unit: "KG"
-        }
-      }
-    ]
-  }
+  },
 };
 
 
