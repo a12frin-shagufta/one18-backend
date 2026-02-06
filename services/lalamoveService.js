@@ -132,33 +132,52 @@ const quotePath = "/v3/quotations";
 /* ✅ THEN USE */
 const quoteBody = {
   data: {
-    scheduleAt,   // ✅ ADD THIS BACK
-    serviceType: "VAN",
+    // 1. Try commenting this out first to verify the structure works
+    // scheduleAt: scheduleAt, 
+    
+    serviceType: "MOTORCYCLE",
     language: "en_SG",
     isRouteOptimized: false,
 
     requesterContact: {
       name: "Bakery",
-      phone: process.env.BAKERY_PHONE
+      phone: process.env.BAKERY_PHONE // Must be +65XXXXXXXX
     },
 
-    stops,
+    stops: [
+      {
+        stopId: "STP_001", // ✅ Mandatory in v3
+        address: "Tampines Street 81, Singapore",
+        coordinates: { lat: 1.3526, lng: 103.9448 },
+        contact: {
+          name: "Bakery",
+          phone: process.env.BAKERY_PHONE
+        }
+      },
+      {
+        stopId: "STP_002", // ✅ Mandatory in v3
+        address: "10 Tampines Avenue 1",
+        coordinates: { lat: 1.354396, lng: 103.945206 },
+        contact: {
+          name: "Customer Name",
+          phone: "+6591111712" 
+        }
+      }
+    ],
 
     items: [
       {
         quantity: "1",
-        description: "Food",
-        categories: ["FOOD"],
+        description: "Bakery Food Delivery",
+        categories: ["FOOD"], // ✅ Change from "DELIVERY" to "FOOD"
         weight: {
-          value: "1",
+          value: "1", // ✅ Must be String
           unit: "KG"
         }
       }
     ]
   }
 };
-
-
 
 
 
