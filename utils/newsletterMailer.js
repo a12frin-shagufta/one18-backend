@@ -1,5 +1,5 @@
 import Newsletter from "../models/newsletterModel.js";
-import { sendEmail } from "./sendEmail.js"; // adjust path if needed
+import { sendEmail } from "../utils/sendEmail.js";
 
 export const sendNewsletterToAll = async ({ subject, html }) => {
       console.log("📬 NEWSLETTER TRIGGERED:", subject);
