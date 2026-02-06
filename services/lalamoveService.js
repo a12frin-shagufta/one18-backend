@@ -175,16 +175,33 @@ const quoteBody = {
      STEP 2 — CREATE ORDER
   ========================== */
 
-  const orderPath = "/v3/orders";
+/* =========================
+   STEP 2 — CREATE ORDER
+========================= */
 
-  const orderBody = {
-    data: {
-      quotationId,
+const orderPath = "/v3/orders";
+
+const orderBody = {
+  data: {
+    quotationId: quotationId, // The ID we just got
+    sender: {
+      stopId: "STP_001", // This must match the index of the first stop
+      name: "Bakery",
+      phone: process.env.BAKERY_PHONE // +6591111712
     },
-  };
+    recipients: [
+      {
+        stopId: "STP_002", // This must match the index of the second stop
+        name: `${order.customer.firstName} ${order.customer.lastName}`,
+        phone: order.customer.phone
+      }
+    ]
+  }
+};
 
-  const orderRes = await signAndCall(orderPath, "POST", orderBody);
+console.log("🚚 ORDER BODY =", JSON.stringify(orderBody, null, 2));
 
+const orderRes = await signAndCall(orderPath, "POST", orderBody);
   console.log("🚚 LALAMOVE ORDER OK:", orderRes.data);
 
   return orderRes.data;
