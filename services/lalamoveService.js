@@ -3,7 +3,6 @@ import { signLalamoveRequest } from "../utils/lalamoveSign.js";
 import moment from "moment-timezone";
 const SG_TZ = "Asia/Singapore";
 
-
 const BASE = process.env.LALAMOVE_BASE_URL;
 const API_KEY = process.env.LALAMOVE_API_KEY;
 const MARKET = process.env.LALAMOVE_MARKET;
@@ -12,7 +11,6 @@ console.log("🌍 LALAMOVE CONFIG →", {
   MARKET,
   KEY: API_KEY?.slice(0, 10) + "...",
 });
-
 
 async function signAndCall(path, method, bodyObj) {
   const bodyString = JSON.stringify(bodyObj); // ✅ FOR SIGNATURE
@@ -24,29 +22,30 @@ async function signAndCall(path, method, bodyObj) {
     body: bodyString, // ✅ string here
     timestamp,
   });
-  
+
   console.log("🔐 SIGNATURE =", signature);
 
   console.log("📡 Lalamove CALL →", method, path);
   console.log("📡 Lalamove BODY →", bodyString);
 
-console.log("POSTMAN_AUTH_HEADER =",
-  `hmac ${API_KEY}:${timestamp}:${signature}`
-);
-
+  console.log(
+    "POSTMAN_AUTH_HEADER =",
+    `hmac ${API_KEY}:${timestamp}:${signature}`,
+  );
 
   try {
-    const res = await axios.post(`${BASE}${path}`, bodyObj, { // ✅ object here
+    // 2. Instead of passing the object, pass the EXACT bodyString 
+    // to ensure Axios doesn't re-stringify it with different spacing.
+    const res = await axios.post(`${BASE}${path}`, bodyString, { 
       headers: {
         "Content-Type": "application/json",
-        Market: MARKET,
-        Authorization: `hmac ${API_KEY}:${timestamp}:${signature}`,
+        "Market": MARKET,
+        "Authorization": `hmac ${API_KEY}:${timestamp}:${signature}`,
       },
     });
 
     console.log("✅ Lalamove RESPONSE →", res.data);
     return res;
-
   } catch (err) {
     console.log("❌ Lalamove ERROR STATUS →", err.response?.status);
     console.log("❌ Lalamove ERROR DATA →", err.response?.data);
@@ -54,155 +53,74 @@ console.log("POSTMAN_AUTH_HEADER =",
   }
 }
 
-
-
 export async function createLalamoveOrder(order) {
-  if (!order.pickupLocation || !order.deliveryAddress) {
-    throw new Error("Missing pickup or delivery data");
+  // 1. Basic Validations
+  if (!order.pickupLocation?.lat || !order.deliveryAddress?.lat) {
+    throw new Error("Coordinates missing");
   }
-
-  if (!order.deliveryAddress.lat || !order.deliveryAddress.lng) {
-    throw new Error("Delivery coordinates missing");
-  }
-
-const scheduleAt = moment().add(2, "hours").toISOString();
-  // ← USE THIS
-
-
-const minTime = moment().tz(SG_TZ).add(30, "minutes");
-
-if (moment(scheduleAt).isBefore(minTime)) {
-  throw new Error("Delivery time too soon for Lalamove");
-}
-
-
-  if (!/^\+65\d{8}$/.test(order.customer.phone)) {
-  throw new Error("Invalid customer phone for Lalamove");
-}
-
-
-  const stops = [
-  {
-    stopId: "STP_001",
-    address: order.pickupLocation.address,
-    coordinates: {
-      lat: Number(order.pickupLocation.lat),
-      lng: Number(order.pickupLocation.lng),
-    },
-    contact: {
-      name: order.pickupLocation.name,
-      phone: process.env.BAKERY_PHONE,
-    },
-  },
-  {
-    stopId: "STP_002",
-    address: order.deliveryAddress.addressText,
-    coordinates: {
-      lat: Number(order.deliveryAddress.lat),
-      lng: Number(order.deliveryAddress.lng),
-    },
-    contact: {
-      name: `${order.customer.firstName} ${order.customer.lastName}`,
-      phone: order.customer.phone,
-    },
-  },
-];
-
-
-console.log("📞 BAKERY_PHONE =", process.env.BAKERY_PHONE);
-console.log("🛑 STOPS PAYLOAD:", JSON.stringify(stops, null, 2));
-
-if (!order.pickupLocation.lat || !order.pickupLocation.lng) {
-  throw new Error("Pickup coordinates required from branch");
-}
 
   /* =========================
      STEP 1 — QUOTATION
   ========================== */
-
-  /* =========================
-   STEP 1 — QUOTATION
-========================= */
-
-const quotePath = "/v3/quotations";
-
-/* ✅ DEFINE FIRST */
-
-
-/* ✅ THEN USE */
-// ... inside createLalamoveOrder ...
-
-const quoteBody = {
-  data: {
-    serviceType: "MOTORCYCLE",
-    language: "en_SG",
-    stops: [
-      {
-        stopId: "STP_001", // ✅ MUST match the ID used in orderBody.sender
-        address: order.pickupLocation.address,
-        coordinates: {
-          lat: order.pickupLocation.lat.toString(),
-          lng: order.pickupLocation.lng.toString(),
+  const quotePath = "/v3/quotations";
+  const quoteBody = {
+    data: {
+      serviceType: "MOTORCYCLE",
+      language: "en_SG",
+      stops: [
+        {
+          address: order.pickupLocation.address,
+          coordinates: {
+            lat: order.pickupLocation.lat.toString(),
+            lng: order.pickupLocation.lng.toString(),
+          },
         },
-      },
-      {
-        stopId: "STP_002", // ✅ MUST match the ID used in orderBody.recipients
-        address: order.deliveryAddress.addressText,
-        coordinates: {
-          lat: order.deliveryAddress.lat.toString(),
-          lng: order.deliveryAddress.lng.toString(),
+        {
+          address: order.deliveryAddress.addressText,
+          coordinates: {
+            lat: order.deliveryAddress.lat.toString(),
+            lng: order.deliveryAddress.lng.toString(),
+          },
         },
-      },
-    ],
-  },
-};
+      ],
+    },
+  };
 
-
-
-  console.log("📦 QUOTE BODY =", quoteBody);
-
+  console.log("📦 REQUESTING QUOTE...");
   const quoteRes = await signAndCall(quotePath, "POST", quoteBody);
-
+  
   const quotationId = quoteRes.data.data.quotationId;
+  // Get the IDs generated by Lalamove
+  const stop0_id = quoteRes.data.data.stops[0].stopId || quoteRes.data.data.stops[0].id;
+  const stop1_id = quoteRes.data.data.stops[1].stopId || quoteRes.data.data.stops[1].id;
 
-  if (!quotationId) {
-    throw new Error("Quotation failed");
-  }
-
-  console.log("✅ QUOTE OK:", quotationId);
+  if (!quotationId) throw new Error("Quotation failed");
 
   /* =========================
      STEP 2 — CREATE ORDER
   ========================== */
+  const orderPath = "/v3/orders";
+  const orderBody = {
+    data: {
+      quotationId: quotationId,
+      sender: {
+        stopId: stop0_id, // Links back to the pickup stop
+        name: "Bakery",
+        phone: process.env.BAKERY_PHONE
+      },
+      recipients: [
+        {
+          stopId: stop1_id, // Links back to the delivery stop
+          name: `${order.customer.firstName} ${order.customer.lastName}`,
+          phone: order.customer.phone
+        }
+      ]
+    }
+  };
 
-/* =========================
-   STEP 2 — CREATE ORDER
-========================= */
-
-const orderPath = "/v3/orders";
-
-const orderBody = {
-  data: {
-    quotationId: quotationId, // The ID we just got
-    sender: {
-      stopId: "STP_001", // This must match the index of the first stop
-      name: "Bakery",
-      phone: process.env.BAKERY_PHONE // +6591111712
-    },
-    recipients: [
-      {
-        stopId: "STP_002", // This must match the index of the second stop
-        name: `${order.customer.firstName} ${order.customer.lastName}`,
-        phone: order.customer.phone
-      }
-    ]
-  }
-};
-
-console.log("🚚 ORDER BODY =", JSON.stringify(orderBody, null, 2));
-
-const orderRes = await signAndCall(orderPath, "POST", orderBody);
-  console.log("🚚 LALAMOVE ORDER OK:", orderRes.data);
-
+  console.log("🚚 PLACING ORDER...");
+  const orderRes = await signAndCall(orderPath, "POST", orderBody);
+  
+  console.log("🎉 LALAMOVE ORDER SUCCESS:", orderRes.data.data.orderId);
   return orderRes.data;
 }
