@@ -9,7 +9,7 @@ export const sendNewsletterToAll = async ({ subject, html }) => {
 
     if (!emails.length) return;
 
-    // send in small batches (Brevo safe)
+    // send in small batches (Brevo safe)ff
     const batchSize = 50;
 
     for (let i = 0; i < emails.length; i += batchSize) {
