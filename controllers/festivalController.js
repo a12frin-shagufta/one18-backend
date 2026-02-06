@@ -5,8 +5,13 @@ import slugify from "slugify";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import crypto from "crypto";
 import { r2 } from "../config/r2.js";
+import { sendNewsletterToAll } from "../utils/newsletterMailer.js";
+
 
 export const createFestival = async (req, res) => {
+  // 🔔 Notify subscribers (async — don't block response)
+
+
   try {
     const { name } = req.body;
 
@@ -36,6 +41,15 @@ export const createFestival = async (req, res) => {
       bannerImage: bannerUrl,
       isActive: true,
     });
+
+    sendNewsletterToAll({
+  subject: `🎉 New Festival Menu: ${festival.name}`,
+  html: `
+    <h2>New Festival Collection Live!</h2>
+    <p>We just launched <b>${festival.name}</b> specials.</p>
+    <p>Check it out now on our website 🍰</p>
+  `
+});
 
     res.json(festival);
   } catch (err) {

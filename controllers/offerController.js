@@ -1,6 +1,10 @@
 import Offer from "../models/Offer.js";
+import { sendNewsletterToAll } from "../utils/newsletterMailer.js";
+
 
 export const createOffer = async (req, res) => {
+  
+
   try {
     const {
       title,
@@ -53,6 +57,16 @@ export const createOffer = async (req, res) => {
     }
 
     const offer = await Offer.create(offerData);
+
+    sendNewsletterToAll({
+  subject: `💸 New Offer: ${offer.title}`,
+  html: `
+    <h2>Special Offer Live!</h2>
+    <p>${Offer.title}</p>
+    <p>Discount: ${offer.value}${offer.type === "percent" ? "%" : ""}</p>
+    <p>Limited time only — order now 🎂</p>
+  `
+});
 
     res.json({ success: true, offer });
   } catch (err) {
