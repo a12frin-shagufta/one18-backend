@@ -138,6 +138,7 @@ const quoteBody = {
     language: "en_SG",
     stops: [
       {
+        stopId: "STP_001", // ✅ MUST match the ID used in orderBody.sender
         address: order.pickupLocation.address,
         coordinates: {
           lat: order.pickupLocation.lat.toString(),
@@ -145,6 +146,7 @@ const quoteBody = {
         },
       },
       {
+        stopId: "STP_002", // ✅ MUST match the ID used in orderBody.recipients
         address: order.deliveryAddress.addressText,
         coordinates: {
           lat: order.deliveryAddress.lat.toString(),
@@ -154,8 +156,6 @@ const quoteBody = {
     ],
   },
 };
-
-
 
 
 
