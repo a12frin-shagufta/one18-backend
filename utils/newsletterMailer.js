@@ -1,35 +1,31 @@
 import Newsletter from "../models/newsletterModel.js";
-import { sendEmail } from "../utils/sendEmail.js";
+import { sendEmail } from "./sendEmail.js";
+
+console.log("🔥 NEWSLETTER MAILER VERSION FINAL");
 
 export const sendNewsletterToAll = async ({ subject, html }) => {
-      console.log("📬 NEWSLETTER TRIGGERED:", subject);
-      console.log("🔥 NEWSLETTER MAILER VERSION 2 LOADED");
-
   try {
+    console.log("📬 NEWSLETTER TRIGGERED:", subject);
+
     const subs = await Newsletter.find({}, "email");
-    const emails = subs.map(s => s.email);
 
-    if (!emails.length) return;
+    for (const s of subs) {
+      console.log("➡️ sending to:", s.email);
 
-    // send in small batches (Brevo safe)ff
-    const batchSize = 50;
-
-    for (let i = 0; i < emails.length; i += batchSize) {
-      const batch = emails.slice(i, i + batchSize);
-
-      await Promise.all(
-        batch.map(email =>
-          sendEmail({
-            to: email,
-            subject,
-            html
-          })
-        )
-      );
+      try {
+        await sendEmail({
+          to: s.email,
+          subject,
+          html
+        });
+      } catch (err) {
+        console.error("❌ failed:", s.email, err.message);
+      }
     }
 
-    console.log("Newsletter campaign sent:", emails.length);
+    console.log("✅ Newsletter finished:", subs.length);
+
   } catch (err) {
-    console.error("Newsletter send error:", err);
+    console.error("❌ newsletter fatal:", err);
   }
 };

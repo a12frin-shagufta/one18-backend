@@ -62,7 +62,7 @@ export const createOffer = async (req, res) => {
   subject: `💸 New Offer: ${offer.title}`,
   html: `
     <h2>Special Offer Live!</h2>
-    <p>${Offer.title}</p>
+    <p>${offer.title}</p>
     <p>Discount: ${offer.value}${offer.type === "percent" ? "%" : ""}</p>
     <p>Limited time only — order now 🎂</p>
   `
