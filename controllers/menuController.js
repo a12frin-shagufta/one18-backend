@@ -106,7 +106,7 @@ export const getMenu = async (req, res) => {
 
 // ✅ Apply stock rules ONLY for normal menu
 if (!festival) {
-  query.inStock = true;
+
   query.$or = [
     { isAvailable: true },
     { isAvailable: { $exists: false } },
