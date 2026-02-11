@@ -7,6 +7,8 @@ import { sendEmail } from "../utils/sendEmail.js";
 
 import { createLalamoveOrder, getLalamoveQuotation } 
 from "../services/lalamoveService.js";
+import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
+
 
 
 
@@ -285,30 +287,21 @@ if (paymentMethod === "paynow") {
   const ADMIN_EMAIL =
     process.env.ADMIN_ORDER_EMAIL || process.env.MAIL_FROM_EMAIL;
 
+  // ✅ ADMIN — full order details
   if (ADMIN_EMAIL) {
     sendEmail({
       to: ADMIN_EMAIL,
       subject: "🚨 New PayNow Order — Verification Needed",
-      html: `
-        <h2>New PayNow Order</h2>
-        <p><b>Order ID:</b> ${order._id}</p>
-        <p><b>Customer:</b> ${customer.firstName} ${customer.lastName}</p>
-        <p><b>Phone:</b> ${customer.phone}</p>
-        <p><b>Total:</b> SGD ${totalAmount}</p>
-      `,
+      html: buildOrderDetailsHTML(order),
     }).catch(console.error);
   }
 
+  // ✅ CUSTOMER — full order details
   if (customer.email) {
     sendEmail({
       to: customer.email,
-      subject: "Order Received — Payment Verification Pending",
-      html: `
-        <h2>Order Received ✅</h2>
-        <p>Your payment proof has been received.</p>
-        <p>Admin is verifying payment.</p>
-        <p><b>Order ID:</b> ${order._id}</p>
-      `,
+      subject: "Order Received ✅ — Payment Verification Pending",
+      html: buildOrderDetailsHTML(order),
     }).catch(console.error);
   }
 }
