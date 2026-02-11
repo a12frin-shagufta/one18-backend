@@ -4,6 +4,8 @@ import Order from "../models/Order.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import multer from "multer";
 import { uploadPaymentProof } from "../controllers/paymentProofController.js";
+import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
+
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -150,35 +152,7 @@ if (order?.customer?.email) {
   sendEmail({
     to: order.customer.email,
     subject: `Order Confirmed ✅ | ONE18 Bakery`,
-    html: `
-      <div style="font-family: Arial; line-height: 1.6;">
-        <h2>Thank you for your order, ${order.customer.firstName} 🎉</h2>
-        <p>Your payment was successful and your order is confirmed ✅</p>
-
-        <h3>Order Summary</h3>
-        <p><b>Order ID:</b> ${order._id}</p>
-        <p><b>Fulfillment:</b> ${order.fulfillmentType}</p>
-        <p><b>Date:</b> ${order.fulfillmentDate}</p>
-        <p><b>Time:</b> ${order.fulfillmentTime}</p>
-
-        <h3>Items:</h3>
-        <ul>
-          ${order.items
-            .map(
-              (i) =>
-                `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
-                  i.qty
-                }</li>`
-            )
-            .join("")}
-        </ul>
-
-        <p><b>Total Paid:</b> SGD ${order.totalAmount}</p>
-
-        <p style="margin-top:20px;">We’ll start preparing your order soon 💛</p>
-        <p><b>ONE18 Bakery</b></p>
-      </div>
-    `,
+    html: buildOrderDetailsHTML(order),
   })
     .then((emailRes) => {
       log("✅ Customer Email SENT successfully!");
@@ -187,9 +161,11 @@ if (order?.customer?.email) {
     .catch((emailErr) => {
       errlog("❌ Customer Email FAILED:", emailErr.message);
     });
+
 } else {
   log("⚠️ No customer email found — skipping customer email");
 }
+
 
 // ✅ ADMIN EMAIL ALERT (BACKGROUND)
 const ADMIN_EMAIL =
@@ -199,64 +175,13 @@ if (ADMIN_EMAIL) {
   log("Preparing admin order alert email (background)...");
 
   sendEmail({
-    to: ADMIN_EMAIL,
-    subject: `🚨 New Order Received | ONE18 Bakery (${order?.fulfillmentType || "order"})`,
-    html: `
-      <div style="font-family: Arial; line-height: 1.6;">
-        <h2>🚨 New Order Received</h2>
-        <p><b>Order ID:</b> ${order?._id}</p>
+  to: ADMIN_EMAIL,
+  subject: `🚨 New Order Received | ONE18 Bakery`,
+  html: buildOrderDetailsHTML(order),
+})
+  .then(() => log("✅ Admin Email SENT"))
+  .catch((e) => errlog("❌ Admin Email FAILED:", e.message));
 
-        <h3>Customer Info</h3>
-        <p><b>Name:</b> ${order?.customer?.firstName || ""} ${
-      order?.customer?.lastName || ""
-    }</p>
-        <p><b>Email:</b> ${order?.customer?.email || "-"}</p>
-        <p><b>Phone:</b> ${order?.customer?.phone || "-"}</p>
-
-        <h3>Fulfillment</h3>
-        <p><b>Type:</b> ${order?.fulfillmentType}</p>
-        <p><b>Date:</b> ${order?.fulfillmentDate}</p>
-        <p><b>Time:</b> ${order?.fulfillmentTime}</p>
-
-        ${
-          order?.fulfillmentType === "delivery"
-            ? `
-              <h3>Delivery Address</h3>
-              <p><b>Address:</b> ${order?.customer?.address || "-"}</p>
-              <p><b>Postal Code:</b> ${order?.customer?.postalCode || "-"}</p>
-            `
-            : ""
-        }
-
-        <h3>Items</h3>
-        <ul>
-          ${(order?.items || [])
-            .map(
-              (i) =>
-                `<li>${i.name} ${i.variant ? `(${i.variant})` : ""} × ${
-                  i.qty
-                } — SGD ${i.price}</li>`
-            )
-            .join("")}
-        </ul>
-
-        <h3>Payment</h3>
-        <p><b>Status:</b> ${order?.paymentStatus}</p>
-        <p><b>Total Paid:</b> SGD ${order?.totalAmount}</p>
-
-        <p style="margin-top:18px; color:#555;">
-          ✅ This is an automated admin alert email.
-        </p>
-      </div>
-    `,
-  })
-    .then((emailRes) => {
-      log("✅ Admin Email SENT successfully!");
-      log("Admin email messageId:", emailRes?.messageId || "N/A");
-    })
-    .catch((emailErr) => {
-      errlog("❌ Admin Email FAILED:", emailErr.message);
-    });
 } else {
   log("⚠️ ADMIN_ORDER_EMAIL missing — skipping admin alert email");
 }
@@ -302,15 +227,11 @@ router.put("/paynow/:id/accept", async (req, res) => {
     // ✅ EMAIL CUSTOMER
     if (order.customer?.email) {
       sendEmail({
-        to: order.customer.email,
-        subject: "Payment Confirmed ✅ | ONE18 Bakery",
-        html: `
-          <h2>Payment confirmed 🎉</h2>
-          <p>Your PayNow payment has been verified.</p>
-          <p>Your order is now confirmed and will be prepared soon.</p>
-          <p><b>Order ID:</b> ${order._id}</p>
-        `,
-      });
+  to: order.customer.email,
+  subject: "Payment Confirmed ✅ | ONE18 Bakery",
+  html: buildOrderDetailsHTML(order),
+});
+
     }
 
     res.json({ success: true });
@@ -338,16 +259,12 @@ router.put("/paynow/:id/reject", async (req, res) => {
 
     // EMAIL CUSTOMER
     if (order.customer?.email) {
-      sendEmail({
-        to: order.customer.email,
-        subject: "Payment Rejected ❌ | ONE18 Bakery",
-        html: `
-          <h2>Payment verification failed</h2>
-          <p>We could not verify your PayNow payment.</p>
-          <p>Please contact support or place order again.</p>
-          <p><b>Order ID:</b> ${order._id}</p>
-        `,
-      });
+     sendEmail({
+  to: order.customer.email,
+  subject: "Payment Rejected ❌ | ONE18 Bakery",
+  html: buildOrderDetailsHTML(order),
+});
+
     }
 
     res.json({ success: true });
