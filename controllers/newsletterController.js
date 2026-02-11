@@ -1,4 +1,6 @@
 import Newsletter from "../models/newsletterModel.js";
+import { sendNewsletterToAll } from "../utils/newsletterMailer.js";
+
 
 
 export const subscribeNewsletter = async (req, res) => {
