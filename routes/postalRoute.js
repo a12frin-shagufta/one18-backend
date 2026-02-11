@@ -15,7 +15,8 @@ router.post("/validate", async (req, res) => {
   return res.json({
     valid: result.valid,
     area: result.area || null,
+    lat: result.lat || null,
+    lng: result.lng || null,
+    formattedAddress: result.formattedAddress || null,
   });
 });
-
-export default router;
