@@ -17,7 +17,12 @@ export const sendEmail = async ({ to, subject, html }) => {
 
   sendSmtpEmail.to = [{ email: to }];
   sendSmtpEmail.subject = subject;
+
+  // ✅ HTML version
   sendSmtpEmail.htmlContent = html;
+
+  // ✅ Plain text fallback (IMPORTANT for inbox placement)
+  sendSmtpEmail.textContent = html.replace(/<[^>]+>/g, "");
 
   const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
   return result;
