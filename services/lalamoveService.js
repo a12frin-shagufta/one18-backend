@@ -129,3 +129,32 @@ export async function createLalamoveOrder(order) {
   console.log("🎉 LALAMOVE ORDER SUCCESS:", orderRes.data.data.orderId);
   return orderRes.data;
 }
+export async function getLalamoveQuotation(pickup, drop) {
+  const quotePath = "/v3/quotations";
+
+  const body = {
+    data: {
+      serviceType: "MOTORCYCLE",
+      language: "en_SG",
+      stops: [
+        {
+          address: pickup.address,
+          coordinates: {
+            lat: pickup.lat.toString(),
+            lng: pickup.lng.toString(),
+          },
+        },
+        {
+          address: drop.address,
+          coordinates: {
+            lat: drop.lat.toString(),
+            lng: drop.lng.toString(),
+          },
+        },
+      ],
+    },
+  };
+
+  const res = await signAndCall(quotePath, "POST", body);
+  return res.data.data;
+}

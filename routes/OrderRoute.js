@@ -4,7 +4,8 @@ import {
   getAllOrders,
   updateOrderStatus,
   bookLalamove,
-  markOrderPaidByCustomer
+  markOrderPaidByCustomer,
+  getLalamoveQuote
 } from "../controllers/orderController.js";
 import adminAuth from "../middleware/adminAuth.js";
 
@@ -17,6 +18,8 @@ router.put("/:id/lalamove/request", adminAuth, bookLalamove);
 
 router.put("/:id/status", adminAuth, updateOrderStatus);
 router.put("/:id/mark-paid", markOrderPaidByCustomer);
+router.post("/lalamove-quote", getLalamoveQuote);
+
 
 
 export default router;

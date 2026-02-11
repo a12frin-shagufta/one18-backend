@@ -4,7 +4,12 @@ import moment from "moment-timezone";
 import Branch from "../models/Branch.js";
 import { validateSingaporePostal } from "../utils/validateSingaporePostal.js";
 import { sendEmail } from "../utils/sendEmail.js";
-import { createLalamoveOrder } from "../services/lalamoveService.js";
+
+import { createLalamoveOrder, getLalamoveQuotation } 
+from "../services/lalamoveService.js";
+
+
+
 
 
 const HOURS_2 = 2;
@@ -423,5 +428,26 @@ export const markOrderPaidByCustomer = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getLalamoveQuote = async (req, res) => {
+  try {
+    const { pickup, drop } = req.body;
+
+    if (!pickup?.lat || !drop?.lat) {
+      return res.status(400).json({ message: "Coordinates required" });
+    }
+
+    const q = await getLalamoveQuotation(pickup, drop);
+
+    res.json({
+      price: q.priceBreakdown.total,
+      quotationId: q.quotationId,
+    });
+
+  } catch (err) {
+    console.log("QUOTE ERROR", err.response?.data || err.message);
+    res.status(500).json({ message: "Quote failed" });
   }
 };
