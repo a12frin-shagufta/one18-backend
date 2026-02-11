@@ -20,3 +20,5 @@ router.post("/validate", async (req, res) => {
     formattedAddress: result.formattedAddress || null,
   });
 });
+
+export default router;
