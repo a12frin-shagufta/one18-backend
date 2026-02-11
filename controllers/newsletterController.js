@@ -1,5 +1,6 @@
 import Newsletter from "../models/newsletterModel.js";
 
+
 export const subscribeNewsletter = async (req, res) => {
   try {
     const { email } = req.body;
@@ -48,5 +49,29 @@ export const getNewsletterSubscribers = async (req, res) => {
   } catch (err) {
     console.error("Newsletter list error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+export const sendManualNewsletter = async (req, res) => {
+  try {
+    const { subject, html } = req.body;
+
+    if (!subject || !html) {
+      return res.status(400).json({
+        message: "Subject and content are required",
+      });
+    }
+
+    await sendNewsletterToAll({ subject, html });
+
+    res.json({
+      success: true,
+      message: "Newsletter sent to all subscribers",
+    });
+
+  } catch (err) {
+    console.error("Manual newsletter error:", err);
+    res.status(500).json({ message: err.message });
   }
 };
