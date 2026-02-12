@@ -37,19 +37,23 @@ router.get("/qr/:orderId", async (req, res) => {
     const name = "ONE18 BAKERY";
     const city = "SINGAPORE";
 
-    let payload =
-      "000201" +
-      "010212" +
-      `26${len2(merchant)}${merchant}` +
-      "52040000" +
-      "5303702" +
-      `54${len2(amount)}${amount}` +
-      "5802SG" +
-      `59${len2(name)}${name}` +
-      `60${len2(city)}${city}` +
-      "62070503REF" +
-      "6304";
+    const ref = `ORD${order._id.toString().slice(-6)}`; // short ref
 
+const additional =
+  "05" + len2(ref) + ref;   // tag 05 = bill reference
+
+let payload =
+  "000201" +                 // payload format
+  "010212" +                 // dynamic QR
+  `26${len2(merchant)}${merchant}` +
+  "52040000" +               // MCC
+  "5303702" +                // SGD
+  `54${len2(amount)}${amount}` +
+  "5802SG" +
+  `59${len2(name)}${name}` +
+  `60${len2(city)}${city}` +
+  `62${len2(additional)}${additional}` +
+  "6304";
     const crc = crc16(payload);
     payload += crc;
 
