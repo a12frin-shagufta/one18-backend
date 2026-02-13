@@ -8,6 +8,8 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
+    
+
     orderType: {
       type: String,
       enum: ["WALK_IN", "PREORDER"],
@@ -55,6 +57,27 @@ paymentMethod: {
   enum: ["paynow", "stripe"],
   required: true,
 },
+
+transactionId: {
+  type: String,
+  default: null,
+},
+
+creditedAccount: {
+  type: String, // Stripe / PayNow UEN / Bank Name
+  default: null,
+},
+
+paidAmount: {
+  type: Number,
+  default: 0,
+},
+
+paidAt: {
+  type: Date,
+  default: null,
+},
+
 
     paymentStatus: {
   type: String,

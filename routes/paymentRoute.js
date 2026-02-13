@@ -5,6 +5,9 @@ import { sendEmail } from "../utils/sendEmail.js";
 import multer from "multer";
 import { uploadPaymentProof } from "../controllers/paymentProofController.js";
 import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
+import { exportPaymentReport } from "../controllers/paymentReportController.js";
+import adminAuth from "../middleware/adminAuth.js";
+
 
 
 const router = express.Router();
@@ -130,10 +133,18 @@ router.post("/verify", async (req, res) => {
 
     log("Updating order paymentStatus => paid...");
     const order = await Order.findByIdAndUpdate(
-      orderId,
-      { paymentStatus: "paid" },
-      { new: true }
-    );
+  orderId,
+  {
+    paymentStatus: "paid",
+    paymentMethod: "stripe",
+    transactionId: session.payment_intent || session.id,
+    creditedAccount: "Stripe",
+    paidAmount: session.amount_total / 100,
+    paidAt: new Date(),
+  },
+  { new: true }
+);
+;
 
     log("Order found + updated:", !!order);
     log("Order customer email:", order?.customer?.email);
@@ -214,31 +225,37 @@ router.post(
 ================================ */
 router.put("/paynow/:id/accept", async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { paymentStatus: "paid" },
-      { new: true }
-    );
+    const existing = await Order.findById(req.params.id);
 
-    if (!order) {
+    if (!existing) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // ✅ EMAIL CUSTOMER
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        paymentStatus: "paid",
+        paymentMethod: "paynow",
+        creditedAccount: "PayNow",
+        paidAmount: existing.totalAmount,
+        paidAt: new Date(),
+      },
+      { new: true }
+    );
+
     if (order.customer?.email) {
       sendEmail({
-  to: order.customer.email,
-  subject: "Payment Confirmed ✅ | ONE18 Bakery",
-  html: buildOrderDetailsHTML(order),
-});
-
+        to: order.customer.email,
+        subject: "Payment Confirmed ✅ | ONE18 Bakery",
+        html: buildOrderDetailsHTML(order),
+      });
     }
 
     res.json({ success: true });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-
 });
 
 
@@ -273,6 +290,7 @@ router.put("/paynow/:id/reject", async (req, res) => {
   }
 });
 
+router.get("/payment-report", adminAuth, exportPaymentReport);
 
 
 export default router;
