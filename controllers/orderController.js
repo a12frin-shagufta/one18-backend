@@ -266,7 +266,8 @@ orderNumber,
   customer,
 
   paymentMethod,
-  paymentStatus: paymentMethod === "paynow" ? "pending" : "paid",
+  paymentStatus: "pending",
+
    paymentProof: paymentMethod === "paynow" ? paymentProof || null : null, // ✅ ADD
 
   pickupLocation: bakeryPickupLocation,

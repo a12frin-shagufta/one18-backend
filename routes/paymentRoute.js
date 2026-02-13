@@ -45,13 +45,15 @@ router.post("/create-checkout-session", async (req, res) => {
     log("Fulfillment Type:", orderPayload?.fulfillmentType);
 
     // ✅ 1) Save order in DB first (pending)
-    const orderNumber = await getNextOrderNumber();
-    log("Saving order in DB...");
-    const savedOrder = await Order.create({
-      ...orderPayload,
-      status: "pending",
-      paymentStatus: "pending",
-    });
+   const orderNumber = await getNextOrderNumber();
+
+const savedOrder = await Order.create({
+  ...orderPayload,
+  orderNumber,
+  status: "pending",
+  paymentStatus: "pending",
+});
+
 
     log("✅ Order saved:", savedOrder._id.toString());
 
@@ -83,8 +85,9 @@ router.post("/create-checkout-session", async (req, res) => {
 
     // ✅ 2) Create Stripe session
     log("Creating Stripe session...");
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+   const session = await stripe.checkout.sessions.create({
+  payment_method_types: ["card", "paynow"],
+
       mode: "payment",
       line_items,
       success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
