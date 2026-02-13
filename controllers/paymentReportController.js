@@ -29,7 +29,8 @@ export const exportPaymentReport = async (req, res) => {
 
     orders.forEach((o) => {
       ws.addRow({
-        id: o._id.toString(),
+       id: o.orderNumber || o._id.toString(),
+
         date: o.createdAt,
         customer: `${o.customer?.firstName || ""} ${o.customer?.lastName || ""}`,
         phone: o.customer?.phone || "",

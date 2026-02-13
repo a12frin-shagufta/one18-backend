@@ -15,6 +15,11 @@ const orderSchema = new mongoose.Schema(
       enum: ["WALK_IN", "PREORDER"],
       required: true,
     },
+    orderNumber: {
+  type: String,
+  unique: true,
+},
+
 
     branch: {
       type: mongoose.Schema.Types.ObjectId,

@@ -9,8 +9,19 @@ import { createLalamoveOrder, getLalamoveQuotation }
 from "../services/lalamoveService.js";
 import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
 
+import Counter from "../models/Counter.js";
 
 
+
+async function getNextOrderNumber() {
+  const counter = await Counter.findOneAndUpdate(
+    { name: "order" },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  return "#" + String(counter.seq).padStart(4, "0");
+}
 
 
 
@@ -243,10 +254,11 @@ console.log(JSON.stringify({
 });
 // console.log("📦 FINAL ORDER PAYLOAD:");
 // console.log(JSON.stringify(orderPayloadForSave, null, 2));
+const orderNumber = await getNextOrderNumber();
 
    const order = await Order.create({
 branch: branchData?._id || null,
-
+orderNumber,
   orderType,
   fulfillmentType,
   fulfillmentDate,

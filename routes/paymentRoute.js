@@ -7,11 +7,24 @@ import { uploadPaymentProof } from "../controllers/paymentProofController.js";
 import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
 import { exportPaymentReport } from "../controllers/paymentReportController.js";
 import adminAuth from "../middleware/adminAuth.js";
+import Counter from "../models/Counter.js";
 
 
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+
+async function getNextOrderNumber() {
+  const counter = await Counter.findOneAndUpdate(
+    { name: "order" },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  return "#" + String(counter.seq).padStart(4, "0");
+}
+
 
 // ✅ Logs
 const log = (...args) => console.log("💳 [PAYMENT]", ...args);
@@ -32,6 +45,7 @@ router.post("/create-checkout-session", async (req, res) => {
     log("Fulfillment Type:", orderPayload?.fulfillmentType);
 
     // ✅ 1) Save order in DB first (pending)
+    const orderNumber = await getNextOrderNumber();
     log("Saving order in DB...");
     const savedOrder = await Order.create({
       ...orderPayload,
