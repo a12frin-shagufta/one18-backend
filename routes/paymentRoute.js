@@ -305,4 +305,43 @@ router.put("/paynow/:id/reject", async (req, res) => {
 
 router.get("/payment-report", adminAuth, exportPaymentReport);
 
+
+// ADMIN — mark stripe order paid manually
+router.put("/admin/mark-paid/:id", adminAuth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // already paid guard
+    if (order.paymentStatus === "paid") {
+      return res.json({ success: true, message: "Already paid" });
+    }
+
+    order.paymentStatus = "paid";
+    order.paidAt = new Date();
+    order.creditedAccount = "Stripe (Manual)";
+    order.paidAmount = order.totalAmount;
+
+    await order.save();
+
+    // ✅ send customer email
+    if (order.customer?.email) {
+      sendEmail({
+        to: order.customer.email,
+        subject: "Payment Confirmed ✅ | ONE18 Bakery",
+        html: buildOrderDetailsHTML(order),
+      }).catch(console.error);
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
 export default router;
