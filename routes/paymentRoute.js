@@ -9,22 +9,22 @@ import { exportPaymentReport } from "../controllers/paymentReportController.js";
 import adminAuth from "../middleware/adminAuth.js";
 import Counter from "../models/Counter.js";
 
-
-
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+
+
 
 
 async function getNextOrderNumber() {
   const counter = await Counter.findOneAndUpdate(
     { name: "order" },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+    { new: true, upsert: true },
   );
 
   return "#" + String(counter.seq).padStart(4, "0");
 }
-
 
 // ✅ Logs
 const log = (...args) => console.log("💳 [PAYMENT]", ...args);
@@ -45,15 +45,14 @@ router.post("/create-checkout-session", async (req, res) => {
     log("Fulfillment Type:", orderPayload?.fulfillmentType);
 
     // ✅ 1) Save order in DB first (pending)
-   const orderNumber = await getNextOrderNumber();
+    const orderNumber = await getNextOrderNumber();
 
-const savedOrder = await Order.create({
-  ...orderPayload,
-  orderNumber,
-  status: "pending",
-  paymentStatus: "pending",
-});
-
+    const savedOrder = await Order.create({
+      ...orderPayload,
+      orderNumber,
+      status: "pending",
+      paymentStatus: "pending",
+    });
 
     log("✅ Order saved:", savedOrder._id.toString());
 
@@ -85,8 +84,8 @@ const savedOrder = await Order.create({
 
     // ✅ 2) Create Stripe session
     log("Creating Stripe session...");
-   const session = await stripe.checkout.sessions.create({
-  payment_method_types: ["card", "paynow"],
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card", "paynow"],
 
       mode: "payment",
       line_items,
@@ -96,6 +95,8 @@ const savedOrder = await Order.create({
         orderId: savedOrder._id.toString(),
       },
     });
+    savedOrder.stripeSessionId = session.id;
+    await savedOrder.save();
 
     log("✅ Stripe session created:", session.id);
     log("✅ Stripe checkout url:", session.url);
@@ -149,19 +150,28 @@ router.post("/verify", async (req, res) => {
     }
 
     log("Updating order paymentStatus => paid...");
-    const order = await Order.findByIdAndUpdate(
-  orderId,
-  {
-    paymentStatus: "paid",
-    paymentMethod: "stripe",
-    transactionId: session.payment_intent || session.id,
-    creditedAccount: "Stripe",
-    paidAmount: session.amount_total / 100,
-    paidAt: new Date(),
-  },
-  { new: true }
-);
-;
+    const order = await Order.findById(orderId);
+
+if (!order) {
+  return res.status(404).json({ message: "Order not found" });
+}
+
+// ✅ already paid → stop
+if (order.paymentStatus === "paid") {
+  return res.json({
+    success: true,
+    message: "Already verified ✅",
+  });
+}
+
+order.paymentStatus = "paid";
+order.paymentMethod = "stripe";
+order.transactionId = session.payment_intent || session.id;
+order.creditedAccount = "Stripe";
+order.paidAmount = session.amount_total / 100;
+order.paidAt = new Date();
+
+await order.save();
 
     log("Order found + updated:", !!order);
     log("Order customer email:", order?.customer?.email);
@@ -173,47 +183,43 @@ router.post("/verify", async (req, res) => {
     });
 
     // ✅ EMAIL (BACKGROUND - NO AWAIT)
-  // ✅ EMAIL (BACKGROUND - NO AWAIT)
-if (order?.customer?.email) {
-  log("Preparing customer email (background)...");
+    // ✅ EMAIL (BACKGROUND - NO AWAIT)
+    if (order?.customer?.email) {
+      log("Preparing customer email (background)...");
 
-  sendEmail({
-    to: order.customer.email,
-    subject: `Order Confirmed ✅ | ONE18 Bakery`,
-    html: buildOrderDetailsHTML(order),
-  })
-    .then((emailRes) => {
-      log("✅ Customer Email SENT successfully!");
-      log("Customer email messageId:", emailRes?.messageId || "N/A");
-    })
-    .catch((emailErr) => {
-      errlog("❌ Customer Email FAILED:", emailErr.message);
-    });
+      sendEmail({
+        to: order.customer.email,
+        subject: `Order Confirmed ✅ | ONE18 Bakery`,
+        html: buildOrderDetailsHTML(order),
+      })
+        .then((emailRes) => {
+          log("✅ Customer Email SENT successfully!");
+          log("Customer email messageId:", emailRes?.messageId || "N/A");
+        })
+        .catch((emailErr) => {
+          errlog("❌ Customer Email FAILED:", emailErr.message);
+        });
+    } else {
+      log("⚠️ No customer email found — skipping customer email");
+    }
 
-} else {
-  log("⚠️ No customer email found — skipping customer email");
-}
+    // ✅ ADMIN EMAIL ALERT (BACKGROUND)
+    const ADMIN_EMAIL =
+      process.env.ADMIN_ORDER_EMAIL || process.env.MAIL_FROM_EMAIL;
 
+    if (ADMIN_EMAIL) {
+      log("Preparing admin order alert email (background)...");
 
-// ✅ ADMIN EMAIL ALERT (BACKGROUND)
-const ADMIN_EMAIL =
-  process.env.ADMIN_ORDER_EMAIL || process.env.MAIL_FROM_EMAIL;
-
-if (ADMIN_EMAIL) {
-  log("Preparing admin order alert email (background)...");
-
-  sendEmail({
-  to: ADMIN_EMAIL,
-  subject: `🚨 New Order Received | ONE18 Bakery`,
-  html: buildOrderDetailsHTML(order),
-})
-  .then(() => log("✅ Admin Email SENT"))
-  .catch((e) => errlog("❌ Admin Email FAILED:", e.message));
-
-} else {
-  log("⚠️ ADMIN_ORDER_EMAIL missing — skipping admin alert email");
-}
-
+      sendEmail({
+        to: ADMIN_EMAIL,
+        subject: `🚨 New Order Received | ONE18 Bakery`,
+        html: buildOrderDetailsHTML(order),
+      })
+        .then(() => log("✅ Admin Email SENT"))
+        .catch((e) => errlog("❌ Admin Email FAILED:", e.message));
+    } else {
+      log("⚠️ ADMIN_ORDER_EMAIL missing — skipping admin alert email");
+    }
   } catch (err) {
     errlog("verify ERROR:", err.message);
     errlog(err);
@@ -224,18 +230,11 @@ if (ADMIN_EMAIL) {
   }
 });
 
-
 const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-
-router.post(
-  "/upload-proof",
-  upload.single("proof"),
-  uploadPaymentProof
-);
-
+router.post("/upload-proof", upload.single("proof"), uploadPaymentProof);
 
 /* ==============================
    ADMIN ACCEPT PAYNOW PAYMENT
@@ -257,7 +256,7 @@ router.put("/paynow/:id/accept", async (req, res) => {
         paidAmount: existing.totalAmount,
         paidAt: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     if (order.customer?.email) {
@@ -269,12 +268,10 @@ router.put("/paynow/:id/accept", async (req, res) => {
     }
 
     res.json({ success: true });
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 /* ==============================
    ADMIN REJECT PAYNOW PAYMENT
@@ -284,7 +281,7 @@ router.put("/paynow/:id/reject", async (req, res) => {
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { paymentStatus: "rejected" },
-      { new: true }
+      { new: true },
     );
 
     if (!order) {
@@ -293,12 +290,11 @@ router.put("/paynow/:id/reject", async (req, res) => {
 
     // EMAIL CUSTOMER
     if (order.customer?.email) {
-     sendEmail({
-  to: order.customer.email,
-  subject: "Payment Rejected ❌ | ONE18 Bakery",
-  html: buildOrderDetailsHTML(order),
-});
-
+      sendEmail({
+        to: order.customer.email,
+        subject: "Payment Rejected ❌ | ONE18 Bakery",
+        html: buildOrderDetailsHTML(order),
+      });
     }
 
     res.json({ success: true });
@@ -308,6 +304,5 @@ router.put("/paynow/:id/reject", async (req, res) => {
 });
 
 router.get("/payment-report", adminAuth, exportPaymentReport);
-
 
 export default router;

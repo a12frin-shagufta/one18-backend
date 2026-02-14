@@ -10,6 +10,9 @@ from "../services/lalamoveService.js";
 import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
 
 import Counter from "../models/Counter.js";
+import Stripe from "stripe";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 
 
 
@@ -330,13 +333,44 @@ if (paymentMethod === "paynow") {
 };
 
 
+async function autoVerifyStripeOrder(order) {
+  try {
+    if (
+      order.paymentStatus === "pending" &&
+      order.paymentMethod === "stripe" &&
+      order.stripeSessionId
+    ) {
+      const session = await stripe.checkout.sessions.retrieve(
+        order.stripeSessionId
+      );
+
+      if (session.payment_status === "paid") {
+        order.paymentStatus = "paid";
+        order.transactionId = session.payment_intent || session.id;
+        order.creditedAccount = "Stripe";
+        order.paidAmount = session.amount_total / 100;
+        order.paidAt = new Date();
+
+        await order.save();
+
+        console.log("✅ AUTO VERIFIED ORDER:", order._id.toString());
+      }
+    }
+  } catch (err) {
+    console.log("⚠️ Auto verify failed:", err.message);
+  }
+}
+
+
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
   .sort({ createdAt: -1 })
   .populate("items.productId", "name")
   .populate("branch", "name address");
-
+for (const order of orders) {
+  await autoVerifyStripeOrder(order);
+}
 
     res.json(orders);
   } catch (err) {
