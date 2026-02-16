@@ -10,10 +10,6 @@ router.post("/check", async (req, res) => {
   try {
     const { postalCode, subtotal = 0 } = req.body;
 
-    if (!postalCode) {
-      return res.status(400).json({ message: "Postal code required" });
-    }
-
     const postal = await validateSingaporePostal(postalCode);
 
     if (!postal.valid) {
@@ -22,14 +18,22 @@ router.post("/check", async (req, res) => {
 
     const area = (postal.area || "").toLowerCase();
 
-    // ✅ REGION RULES
-    let deliveryFee = 20; // default west
+    let deliveryFee = 20; // default = west
 
-    if (area.includes("east") || area.includes("north")) {
+    // ✅ EAST / NORTH = 15
+    if (
+      area.includes("east") ||
+      area.includes("tampines") ||
+      area.includes("pasir") ||
+      area.includes("bedok") ||
+      area.includes("north") ||
+      area.includes("yishun") ||
+      area.includes("woodlands")
+    ) {
       deliveryFee = 15;
     }
 
-    // ✅ free delivery rule (optional keep)
+    // optional free rule
     if (Number(subtotal) >= 180) {
       deliveryFee = 0;
     }
@@ -41,10 +45,10 @@ router.post("/check", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Delivery check error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 export default router;
