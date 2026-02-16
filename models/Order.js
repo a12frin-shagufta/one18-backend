@@ -20,6 +20,13 @@ const orderSchema = new mongoose.Schema(
   unique: true,
 },
 
+refund: {
+  refundId: String,
+  amount: Number,
+  refundedAt: Date,
+  reason: String,
+},
+
 
     branch: {
       type: mongoose.Schema.Types.ObjectId,
@@ -88,12 +95,15 @@ paidAt: {
   type: String,
   enum: [
     "pending",
-    "pending_verification",   // ✅ ADD THIS
+    "pending_verification",
     "paid",
-    "failed"
+    "failed",
+    "rejected",
+    "refunded"   // ✅ ADD THIS
   ],
   default: "pending"
 },
+
 
 
     fulfillmentDate: { type: String, required: true },
@@ -139,11 +149,18 @@ deliveryAddress: {
       default: "pending",
     },
 
-    lalamoveStatus: {
-      type: String,
-      enum: ["not_required", "not_booked", "booking_requested", "booked", "failed"],
-      default: "not_booked",
-    },
+ lalamoveStatus: {
+  type: String,
+  enum: [
+    "not_required",
+    "not_booked",
+    "booking_requested",
+    "booked",
+    "failed",
+    "self_delivery"   // ✅ ADD
+  ],
+  default: "not_booked",
+},
 
     
 

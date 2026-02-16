@@ -20,27 +20,31 @@ router.post("/check", async (req, res) => {
       return res.status(400).json({ message: "Invalid postal code" });
     }
 
-    const km = getDistanceKm(
-      DEFAULT_BRANCH_LOCATION.lat,
-      DEFAULT_BRANCH_LOCATION.lng,
-      postal.lat,
-      postal.lng
-    );
+    const area = (postal.area || "").toLowerCase();
 
-    let deliveryFee = km > 10 ? 15 : 10;
+    // ✅ REGION RULES
+    let deliveryFee = 20; // default west
 
-    if (Number(subtotal) >= 180) deliveryFee = 0;
+    if (area.includes("east") || area.includes("north")) {
+      deliveryFee = 15;
+    }
 
-    return res.json({
+    // ✅ free delivery rule (optional keep)
+    if (Number(subtotal) >= 180) {
+      deliveryFee = 0;
+    }
+
+    res.json({
       eligible: true,
-      distanceKm: Number(km.toFixed(2)),
+      area: postal.area,
       deliveryFee
     });
 
   } catch (err) {
     console.error("Delivery check error:", err);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
+
 
 export default router;

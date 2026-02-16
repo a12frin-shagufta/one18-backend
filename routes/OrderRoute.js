@@ -18,7 +18,7 @@ router.put("/:id/lalamove/request", adminAuth, bookLalamove);
 
 router.put("/:id/status", adminAuth, updateOrderStatus);
 router.put("/:id/mark-paid", markOrderPaidByCustomer);
-router.post("/lalamove-quote", getLalamoveQuote);
+// router.post("/lalamove-quote", getLalamoveQuote);
 
 
 

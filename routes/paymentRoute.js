@@ -343,5 +343,100 @@ router.put("/admin/mark-paid/:id", adminAuth, async (req, res) => {
   }
 });
 
+// ==============================
+// ADMIN REFUND — STRIPE SAFE
+// ==============================
+router.post("/refund/:id", adminAuth, async (req, res) => {
+  try {
+    const { amount, reason } = req.body; 
+    // amount optional → partial refund ready
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // ✅ safety checks
+    if (order.paymentMethod !== "stripe") {
+      return res.status(400).json({
+        message: "Only Stripe payments can be auto-refunded",
+      });
+    }
+
+    if (order.paymentStatus !== "paid") {
+      return res.status(400).json({
+        message: "Order is not paid — cannot refund",
+      });
+    }
+
+    if (order.paymentStatus === "refunded") {
+      return res.status(400).json({
+        message: "Already refunded",
+      });
+    }
+
+    if (!order.transactionId) {
+      return res.status(400).json({
+        message: "Missing Stripe payment reference",
+      });
+    }
+
+    // ✅ amount logic (supports partial refund)
+    const refundAmountCents = amount
+      ? Math.round(amount * 100)
+      : undefined;
+
+   const refund = await stripe.refunds.create(
+  {
+    payment_intent: order.transactionId,
+    ...(refundAmountCents && { amount: refundAmountCents }),
+  },
+  {
+    idempotencyKey: `refund_${order._id}`
+  }
+);
+
+    // ✅ update DB
+    order.paymentStatus = "refunded";
+    order.status = "cancelled";
+
+    order.refund = {
+      refundId: refund.id,
+      amount: (refund.amount || 0) / 100,
+      refundedAt: new Date(),
+      reason: reason || "Admin refund",
+    };
+
+    await order.save();
+
+    // ✅ send customer email
+    if (order.customer?.email) {
+      sendEmail({
+        to: order.customer.email,
+        subject: `Refund Processed — Order ${order.orderNumber}`,
+        html: `
+          <h2>Refund Processed</h2>
+          <p>Your refund has been completed.</p>
+          <p><b>Order:</b> ${order.orderNumber}</p>
+          <p><b>Amount:</b> SGD ${(refund.amount/100).toFixed(2)}</p>
+          <p>The amount will appear back in your account shortly.</p>
+        `,
+      }).catch(console.error);
+    }
+
+    res.json({
+      success: true,
+      refundId: refund.id,
+    });
+
+  } catch (err) {
+    console.error("REFUND ERROR:", err);
+    res.status(500).json({
+      message: err.message || "Refund failed",
+    });
+  }
+});
+
 
 export default router;

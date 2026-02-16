@@ -5,8 +5,7 @@ import Branch from "../models/Branch.js";
 import { validateSingaporePostal } from "../utils/validateSingaporePostal.js";
 import { sendEmail } from "../utils/sendEmail.js";
 
-import { createLalamoveOrder, getLalamoveQuotation } 
-from "../services/lalamoveService.js";
+
 import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
 
 import Counter from "../models/Counter.js";
@@ -151,8 +150,9 @@ console.log("📞 NORMALIZED CUSTOMER:");
 console.log(JSON.stringify(customer, null, 2));
 
 
-    const lalamoveStatus =
-  fulfillmentType === "pickup" ? "not_required" : "not_booked";
+  const lalamoveStatus =
+  fulfillmentType === "pickup" ? "not_required" : "self_delivery";
+
 
 
     // ✅ DELIVERY needs address + postal
@@ -395,61 +395,68 @@ export const updateOrderStatus = async (req, res) => {
 };
 
 
+// export const bookLalamove = async (req, res) => {
+//   try {
+//     const order = await Order.findById(req.params.id);
+
+//     if (!order) {
+//       return res.status(404).json({ message: "Order not found" });
+//     }
+
+//     if (order.paymentMethod === "paynow" && order.paymentStatus !== "paid") {
+//       return res.status(400).json({
+//         message: "Payment not verified yet — cannot book Lalamove",
+//       });
+//     }
+
+//     if (order.fulfillmentType !== "delivery") {
+//       return res.status(400).json({ message: "Not a delivery order" });
+//     }
+
+//     if (order.lalamoveStatus === "booked") {
+//       return res.status(400).json({ message: "Already booked" });
+//     }
+
+//     if (!order.pickupLocation || !order.deliveryAddress) {
+//       return res.status(400).json({
+//         message: "Missing pickup or delivery address",
+//       });
+//     }
+
+//     order.lalamoveStatus = "booking_requested";
+//     await order.save();
+
+//     // ✅ THIS IS THE ONLY CALL YOU NEED
+//     const result = await createLalamoveOrder(order);
+
+//     order.lalamoveBookingId = result.data.orderId;
+//     order.lalamoveTrackingLink = result.data.shareLink;
+//     order.lalamoveStatus = "booked";
+
+//     await order.save();
+
+//     return res.json({ success: true, result });
+
+//   } catch (err) {
+//     console.error("Lalamove booking error:");
+//     console.error(err.response?.data || err.message || err);
+
+//     await Order.findByIdAndUpdate(req.params.id, {
+//       lalamoveStatus: "failed",
+//     });
+
+//     return res.status(500).json({
+//       message: err.response?.data || err.message || "Lalamove booking failed",
+//     });
+//   }
+// };
+
 export const bookLalamove = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    if (order.paymentMethod === "paynow" && order.paymentStatus !== "paid") {
-      return res.status(400).json({
-        message: "Payment not verified yet — cannot book Lalamove",
-      });
-    }
-
-    if (order.fulfillmentType !== "delivery") {
-      return res.status(400).json({ message: "Not a delivery order" });
-    }
-
-    if (order.lalamoveStatus === "booked") {
-      return res.status(400).json({ message: "Already booked" });
-    }
-
-    if (!order.pickupLocation || !order.deliveryAddress) {
-      return res.status(400).json({
-        message: "Missing pickup or delivery address",
-      });
-    }
-
-    order.lalamoveStatus = "booking_requested";
-    await order.save();
-
-    // ✅ THIS IS THE ONLY CALL YOU NEED
-    const result = await createLalamoveOrder(order);
-
-    order.lalamoveBookingId = result.data.orderId;
-    order.lalamoveTrackingLink = result.data.shareLink;
-    order.lalamoveStatus = "booked";
-
-    await order.save();
-
-    return res.json({ success: true, result });
-
-  } catch (err) {
-    console.error("Lalamove booking error:");
-    console.error(err.response?.data || err.message || err);
-
-    await Order.findByIdAndUpdate(req.params.id, {
-      lalamoveStatus: "failed",
-    });
-
-    return res.status(500).json({
-      message: err.response?.data || err.message || "Lalamove booking failed",
-    });
-  }
+  return res.status(410).json({
+    message: "Lalamove disabled — using in-house delivery",
+  });
 };
+
 
 
 export const markOrderPaidByCustomer = async (req,res) => {
