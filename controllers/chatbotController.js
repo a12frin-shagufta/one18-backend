@@ -1,47 +1,38 @@
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1"
 });
 
 export const bakeryChatbot = async (req, res) => {
   try {
     const { message } = req.body;
 
-    const prompt = `
-You are a helpful AI assistant for a bakery website.
-
-Rules:
-- Answer only about bakery topics
-- Be friendly and short
-- Do not discuss politics or unrelated topics
-- If unsure — say you will connect human support
-
-Bakery Info:
-- Custom cakes available
-- Order 2–3 days in advance
-- Same day delivery not guaranteed
-- Delivery via partner service
-- Payment: online + COD
-- Refund only if order issue
-
-Customer message:
-${message}
+    const systemPrompt = `
+You are a helpful bakery website assistant.
+Answer short and friendly.
+Only answer bakery related questions.
+If unsure, tell user to contact bakery support.
 `;
 
-    const response = await client.responses.create({
-      model: "gpt-5-mini",
-      input: prompt
+    const completion = await client.chat.completions.create({
+      model: "openai/gpt-4o-mini",   // ✅ cheap + good
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ]
     });
 
-    res.json({
-      reply: response.output_text
-    });
+    const reply = completion.choices[0].message.content;
+
+    res.json({ reply });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      reply: "Sorry — assistant is busy. Please contact bakery support."
+    console.error("OPENROUTER ERROR:", err.message);
+
+    res.json({
+      reply: "Assistant temporarily unavailable. Please contact bakery support."
     });
   }
 };
