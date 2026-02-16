@@ -25,6 +25,7 @@ About:
 - Premium ingredients used
 - No preservatives
 - Custom cakes and specialty croissants available
+- This is one18 bakery. Where everything is baked fresh every single day. But what makes them special are the local flavour creations
 
 Ordering Rules:
 - Orders must be booked at least 3 days in advance
