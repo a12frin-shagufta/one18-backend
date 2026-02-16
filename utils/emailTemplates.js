@@ -12,7 +12,8 @@ export const buildOrderDetailsHTML = (order) => {
     <div style="font-family:Arial; line-height:1.6">
       <h2>Order Details</h2>
 
-      <p><b>Order ID:</b> ${order._id}</p>
+      <p><b>Order ID:</b> ${order.orderNumber || order._id}</p>
+
       <p><b>Type:</b> ${order.fulfillmentType}</p>
       <p><b>Date:</b> ${order.fulfillmentDate}</p>
       <p><b>Time:</b> ${order.fulfillmentTime}</p>
