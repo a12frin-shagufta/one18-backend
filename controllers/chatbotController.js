@@ -19,6 +19,7 @@ Branches:
 2) 757 North Bridge Rd, Singapore 198725
 
 About:
+- MAHDI BAMADHAJ
 - 100% Halal
 - 100% Muslim Owned
 - Premium ingredients used
