@@ -99,36 +99,43 @@ reply:
 ===================== */
 
 // break message into meaningful words
-const words = message
-  .toLowerCase()
-  .replace(/[^a-z0-9\s]/g, "")
-  .split(" ")
-  .filter(w => w.length > 3); // remove small words
+/* =====================
+   Product Match (SMART)
+===================== */
 
-const searchRegex = words.join("|"); // pistachio|croissant
+// 1. Clean the message but keep the structure
+const cleanMessage = message.toLowerCase().replace(/[^a-z0-9\s]/g, "");
 
-const matchedProducts = await MenuItem.find({
-  name: { $regex: searchRegex, $options: "i" },
-  isAvailable: true
-})
-.limit(3)
-.select("name description servingInfo preorder variants");
+// 2. Remove common "filler" words that aren't product names
+const stopWords = ["price", "of", "the", "what", "is", "for", "show", "me", "tell"];
+const queryWords = cleanMessage.split(" ").filter(w => !stopWords.includes(w) && w.length > 2);
 
+// 3. Create a search pattern (e.g., "pistachio|croissant")
+const searchRegex = queryWords.join("|");
 
-  const productKnowledge = matchedProducts.map(p => {
-  const priceText = p.variants?.length
+let matchedProducts = [];
+if (searchRegex) {
+  matchedProducts = await MenuItem.find({
+    name: { $regex: searchRegex, $options: "i" },
+    isAvailable: true
+  })
+  .limit(3)
+  .select("name description servingInfo preorder variants");
+}
+
+// 4. Format the knowledge for GPT
+const productKnowledge = matchedProducts.map(p => {
+  const priceText = (p.variants && p.variants.length > 0)
     ? p.variants.map(v => `${v.label}: $${v.price}`).join(", ")
-    : "price not set";
+    : "Contact shop for pricing";
 
   return `
-Product: ${p.name}
-Serving: ${p.servingInfo || "not specified"}
-Preorder: ${p.preorder?.enabled ? `${p.preorder.minDays} days` : "not required"}
+Item: ${p.name}
 Prices: ${priceText}
-Description: ${p.description || ""}
+Serving: ${p.servingInfo || "Standard"}
+Preorder: ${p.preorder?.enabled ? `${p.preorder.minDays} days` : "Not required"}
 `;
-}).join("\n");
-
+}).join("\n---\n");
 
     /* =====================
        Prompt
