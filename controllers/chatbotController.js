@@ -93,15 +93,26 @@ reply:
       return `- ${o.title}: ${val} (applies to ${o.appliesTo})`;
     }).join("\n");
 
-    /* =====================
-       Product Match
-    ====================== */
-    const matchedProducts = await MenuItem.find({
-      name: { $regex: message, $options: "i" },
-      isAvailable: true
-    })
-      .limit(3)
-      .select("name description servingInfo preorder variants");
+
+/* =====================
+   Product Match (SMART)
+===================== */
+
+// break message into meaningful words
+const words = message
+  .toLowerCase()
+  .replace(/[^a-z0-9\s]/g, "")
+  .split(" ")
+  .filter(w => w.length > 3); // remove small words
+
+const searchRegex = words.join("|"); // pistachio|croissant
+
+const matchedProducts = await MenuItem.find({
+  name: { $regex: searchRegex, $options: "i" },
+  isAvailable: true
+})
+.limit(3)
+.select("name description servingInfo preorder variants");
 
 
   const productKnowledge = matchedProducts.map(p => {
