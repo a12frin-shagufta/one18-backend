@@ -20,6 +20,28 @@ export const bakeryChatbot = async (req, res) => {
    ✅ Custom Cake Intent
 ===================== */
 
+const renderMessageText = (text) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  return text.split(urlRegex).map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#334b8f] underline font-medium break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
+
+
 const customKeywords = [
   "custom cake",
   "birthday cake",
@@ -37,6 +59,7 @@ reply:
 
   });
 }
+
 
 
     /* =====================
