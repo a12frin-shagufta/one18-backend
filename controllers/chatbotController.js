@@ -17,6 +17,29 @@ export const bakeryChatbot = async (req, res) => {
     const q = message.toLowerCase();
 
     /* =====================
+   ✅ Custom Cake Intent
+===================== */
+
+const customKeywords = [
+  "custom cake",
+  "birthday cake",
+  "wedding cake",
+  "customise cake",
+  "customize cake",
+  "theme cake",
+  "photo cake"
+];
+
+if (customKeywords.some(k => q.includes(k))) {
+  return res.json({
+reply:
+"Yes 😊 Custom cakes are available. Please message us on WhatsApp: https://wa.me/6591111712 to customize and order."
+
+  });
+}
+
+
+    /* =====================
        Branches
     ====================== */
     const branches = await Branch.find().select("name address");
@@ -75,14 +98,23 @@ export const bakeryChatbot = async (req, res) => {
       isAvailable: true
     })
       .limit(3)
-      .select("name description servingInfo preorder");
+      .select("name description servingInfo preorder variants");
 
-    const productKnowledge = matchedProducts.map(p => `
+
+  const productKnowledge = matchedProducts.map(p => {
+  const priceText = p.variants?.length
+    ? p.variants.map(v => `${v.label}: $${v.price}`).join(", ")
+    : "price not set";
+
+  return `
 Product: ${p.name}
 Serving: ${p.servingInfo || "not specified"}
 Preorder: ${p.preorder?.enabled ? `${p.preorder.minDays} days` : "not required"}
+Prices: ${priceText}
 Description: ${p.description || ""}
-`).join("\n");
+`;
+}).join("\n");
+
 
     /* =====================
        Prompt
@@ -112,7 +144,7 @@ ${productKnowledge}
 Rules:
 - Friendly short replies
 - Use provided data only
-- Do NOT invent prices
+- Use provided price data only — never guess prices
 - If unsure → tell user to contact bakery
 `;
 
