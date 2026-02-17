@@ -20,45 +20,45 @@ export const bakeryChatbot = async (req, res) => {
    ✅ Custom Cake Intent
 ===================== */
 
+    const customKeywords = [
+      "custom cake",
+      "birthday cake",
+      "wedding cake",
+      "customise cake",
+      "customize cake",
+      "theme cake",
+      "photo cake",
+    ];
 
+    if (customKeywords.some((k) => q.includes(k))) {
+      return res.json({
+        reply:
+          "Yes 😊 Custom cakes are available. Please message us on WhatsApp: https://wa.me/6591111712 to customize and order.",
+      });
+    }
 
-const customKeywords = [
-  "custom cake",
-  "birthday cake",
-  "wedding cake",
-  "customise cake",
-  "customize cake",
-  "theme cake",
-  "photo cake"
-];
-
-if (customKeywords.some(k => q.includes(k))) {
-  return res.json({
-reply:
-"Yes 😊 Custom cakes are available. Please message us on WhatsApp: https://wa.me/6591111712 to customize and order."
-
-  });
-}
-
-
+    const categories = await Category.find().select("name");
+    const categoryText = categories.map((c) => `- ${c.name}`).join("\n");
 
     /* =====================
        Branches
     ====================== */
     const branches = await Branch.find().select("name address");
-    const branchText = branches.map(b =>
-      `- ${b.name}: ${b.address}`
-    ).join("\n");
+    const branchText = branches
+      .map((b) => `- ${b.name}: ${b.address}`)
+      .join("\n");
 
     /* =====================
        Best Sellers
     ====================== */
-    const bestSellers = await MenuItem
-      .find({ isBestSeller: true, isAvailable: true })
+    const bestSellers = await MenuItem.find({
+      isBestSeller: true,
+      isAvailable: true,
+    })
       .limit(5)
       .select("name");
 
-    const bestSellerText = bestSellers.map(p => `- ${p.name}`).join("\n");
+    const bestSellerText = bestSellers.map((p) => `- ${p.name}`).join("\n");
 
     /* =====================
        Active Festival
@@ -68,12 +68,14 @@ reply:
     let festivalItemsText = "";
 
     if (activeFestival) {
-      const festItems = await MenuItem
-        .find({ festival: activeFestival._id, isAvailable: true })
+      const festItems = await MenuItem.find({
+        festival: activeFestival._id,
+        isAvailable: true,
+      })
         .limit(6)
         .select("name");
 
-      festivalItemsText = festItems.map(i => `- ${i.name}`).join("\n");
+      festivalItemsText = festItems.map((i) => `- ${i.name}`).join("\n");
     }
 
     /* =====================
@@ -85,57 +87,74 @@ reply:
       endDate: { $gte: now },
     }).limit(5);
 
-    const offerText = activeOffers.map(o => {
-      const val = o.type === "percent"
-        ? `${o.value}% off`
-        : `$${o.value} off`;
+    const offerText = activeOffers
+      .map((o) => {
+        const val =
+          o.type === "percent" ? `${o.value}% off` : `$${o.value} off`;
 
-      return `- ${o.title}: ${val} (applies to ${o.appliesTo})`;
-    }).join("\n");
+        return `- ${o.title}: ${val} (applies to ${o.appliesTo})`;
+      })
+      .join("\n");
 
-
-/* =====================
+    /* =====================
    Product Match (SMART)
 ===================== */
 
-// break message into meaningful words
-/* =====================
+    // break message into meaningful words
+    /* =====================
    Product Match (SMART)
 ===================== */
 
-// 1. Clean the message but keep the structure
-const cleanMessage = message.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+    // 1. Clean the message but keep the structure
+    const cleanMessage = message.toLowerCase().replace(/[^a-z0-9\s]/g, "");
 
-// 2. Remove common "filler" words that aren't product names
-const stopWords = ["price", "of", "the", "what", "is", "for", "show", "me", "tell"];
-const queryWords = cleanMessage.split(" ").filter(w => !stopWords.includes(w) && w.length > 2);
+    // 2. Remove common "filler" words that aren't product names
+    const stopWords = [
+      "price",
+      "of",
+      "the",
+      "what",
+      "is",
+      "for",
+      "show",
+      "me",
+      "tell",
+    ];
+    const queryWords = cleanMessage
+      .split(" ")
+      .filter((w) => !stopWords.includes(w) && w.length > 2);
 
-// 3. Create a search pattern (e.g., "pistachio|croissant")
-const searchRegex = queryWords.join("|");
+    // 3. Create a search pattern (e.g., "pistachio|croissant")
+    const searchRegex = queryWords.join("|");
 
-let matchedProducts = [];
-if (searchRegex) {
-  matchedProducts = await MenuItem.find({
-    name: { $regex: searchRegex, $options: "i" },
-    isAvailable: true
-  })
-  .limit(3)
-  .select("name description servingInfo preorder variants");
-}
+    let matchedProducts = [];
+    if (searchRegex) {
+      matchedProducts = await MenuItem.find({
+        name: { $regex: searchRegex, $options: "i" },
+        isAvailable: true,
+      })
+        .limit(3)
+        .select("name description servingInfo preorder variants");
+    }
 
-// 4. Format the knowledge for GPT
-const productKnowledge = matchedProducts.map(p => {
-  const priceText = (p.variants && p.variants.length > 0)
-    ? p.variants.map(v => `${v.label}: $${v.price}`).join(", ")
-    : "Contact shop for pricing";
+    // 4. Format the knowledge for GPT
+    const productKnowledge = matchedProducts
+      .map((p) => {
+        const priceText =
+          p.variants && p.variants.length > 0
+            ? p.variants.map((v) => `${v.label}: $${v.price}`).join(", ")
+            : "Contact shop for pricing";
 
-  return `
+        return `
 Item: ${p.name}
 Prices: ${priceText}
 Serving: ${p.servingInfo || "Standard"}
+Menu Categories:
+${categoryText}
 Preorder: ${p.preorder?.enabled ? `${p.preorder.minDays} days` : "Not required"}
 `;
-}).join("\n---\n");
+      })
+      .join("\n---\n");
 
     /* =====================
        Prompt
@@ -149,6 +168,9 @@ Owner: Mahdi BamadhaJ
 Branches:
 ${branchText}
 
+Menu Categories:
+${categoryText}
+
 Best Sellers:
 ${bestSellerText}
 
@@ -159,6 +181,10 @@ ${festivalItemsText}` : ""}
 Current Offers:
 ${offerText || "No active offers right now"}
 
+Ordering Rule:
+- Orders should be placed at least 3 days in advance
+- For same-day or urgent orders → contact WhatsApp: https://wa.me/6591111712
+
 Matched Product Info:
 ${productKnowledge}
 
@@ -168,6 +194,7 @@ Rules:
 - Use provided price data only — never guess prices
 - If unsure → tell user to contact bakery
 `;
+
 
     const completion = await client.chat.completions.create({
       model: "openai/gpt-4o-mini",
@@ -180,7 +207,6 @@ Rules:
     res.json({
       reply: completion.choices[0].message.content,
     });
-
   } catch (err) {
     console.error("CHATBOT ERROR:", err);
     res.json({
