@@ -1,4 +1,9 @@
 import OpenAI from "openai";
+import MenuItem from "../models/MenuItem.js";
+import Branch from "../models/Branch.js";
+import Category from "../models/Category.js";
+import Offer from "../models/Offer.js";
+import Festival from "../models/Festival.js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -8,62 +13,125 @@ const client = new OpenAI({
 export const bakeryChatbot = async (req, res) => {
   try {
     const { message } = req.body;
+    const now = new Date();
+    const q = message.toLowerCase();
 
+    /* =====================
+       Branches
+    ====================== */
+    const branches = await Branch.find().select("name address");
+    const branchText = branches.map(b =>
+      `- ${b.name}: ${b.address}`
+    ).join("\n");
+
+    /* =====================
+       Best Sellers
+    ====================== */
+    const bestSellers = await MenuItem
+      .find({ isBestSeller: true, isAvailable: true })
+      .limit(5)
+      .select("name");
+
+    const bestSellerText = bestSellers.map(p => `- ${p.name}`).join("\n");
+
+    /* =====================
+       Active Festival
+    ====================== */
+    const activeFestival = await Festival.findOne({ isActive: true });
+
+    let festivalItemsText = "";
+
+    if (activeFestival) {
+      const festItems = await MenuItem
+        .find({ festival: activeFestival._id, isAvailable: true })
+        .limit(6)
+        .select("name");
+
+      festivalItemsText = festItems.map(i => `- ${i.name}`).join("\n");
+    }
+
+    /* =====================
+       Active Offers
+    ====================== */
+    const activeOffers = await Offer.find({
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).limit(5);
+
+    const offerText = activeOffers.map(o => {
+      const val = o.type === "percent"
+        ? `${o.value}% off`
+        : `$${o.value} off`;
+
+      return `- ${o.title}: ${val} (applies to ${o.appliesTo})`;
+    }).join("\n");
+
+    /* =====================
+       Product Match
+    ====================== */
+    const matchedProducts = await MenuItem.find({
+      name: { $regex: message, $options: "i" },
+      isAvailable: true
+    })
+      .limit(3)
+      .select("name description servingInfo preorder");
+
+    const productKnowledge = matchedProducts.map(p => `
+Product: ${p.name}
+Serving: ${p.servingInfo || "not specified"}
+Preorder: ${p.preorder?.enabled ? `${p.preorder.minDays} days` : "not required"}
+Description: ${p.description || ""}
+`).join("\n");
+
+    /* =====================
+       Prompt
+    ====================== */
     const systemPrompt = `
-You are the official AI assistant for One18 Bakery in Singapore.
+You are the official AI assistant for One18 Bakery Singapore.
 
-Business Facts (must follow exactly):
+Owner: Mahdi BamadhaJ
+100% Halal • Muslim Owned • No preservatives • Fresh daily
 
 Branches:
-1) Blk 826 Tampines Street 81, Singapore
-2) 757 North Bridge Rd, Singapore 198725
+${branchText}
 
-About:
-- MAHDI BAMADHAJ
-- 100% Halal
-- 100% Muslim Owned
-- Premium ingredients used
-- No preservatives
-- Custom cakes and specialty croissants available
-- This is one18 bakery. Where everything is baked fresh every single day. But what makes them special are the local flavour creations
+Best Sellers:
+${bestSellerText}
 
-Ordering Rules:
-- Orders must be booked at least 3 days in advance
-- Same-day orders are usually not available
-- For urgent cases → ask customer to contact bakery directly
+${activeFestival ? `Active Festival: ${activeFestival.name}
+Festival Items:
+${festivalItemsText}` : ""}
 
-Best Seller Items:
-- Supreme Sambal Tumis Ikan Bilis Croissant
-- Supreme Beef Rendang Croissant
-- Supreme Fried Chicken Satay Croissant
-- Supreme Pistachio Croissant
+Current Offers:
+${offerText || "No active offers right now"}
 
-Assistant Behavior Rules:
-- Answer short, friendly, and confident
-- Only answer bakery-related questions
+Matched Product Info:
+${productKnowledge}
+
+Rules:
+- Friendly short replies
+- Use provided data only
 - Do NOT invent prices
-- Do NOT invent new branches
-- If something is unknown → say: “Please contact our bakery support for confirmation.”
-- Do not discuss politics or unrelated topics
+- If unsure → tell user to contact bakery
 `;
 
     const completion = await client.chat.completions.create({
-      model: "openai/gpt-4o-mini", // ✅ cheap + good
+      model: "openai/gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
       ],
     });
 
-    const reply = completion.choices[0].message.content;
-
-    res.json({ reply });
-  } catch (err) {
-    console.error("OPENROUTER ERROR:", err.message);
-
     res.json({
-      reply:
-        "Assistant temporarily unavailable. Please contact bakery support.",
+      reply: completion.choices[0].message.content,
+    });
+
+  } catch (err) {
+    console.error("CHATBOT ERROR:", err);
+    res.json({
+      reply: "Assistant temporarily unavailable.",
     });
   }
 };
