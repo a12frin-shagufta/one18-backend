@@ -104,7 +104,6 @@ export const getMenu = async (req, res) => {
     const { branch, festival } = req.query;
 
    const query = {
-  stock: { $gt: 0 }, // Always hide out of stock
   $or: [
     { isAvailable: true },
     { isAvailable: { $exists: false } },
