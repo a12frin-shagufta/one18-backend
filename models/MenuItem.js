@@ -73,10 +73,16 @@ preorder: {
       default: true,
     },
 
-    inStock: {
-      type: Boolean,
-      default: true,
-    },
+    // inStock: {
+    //   type: Boolean,
+    //   default: true,
+    // },
+
+    stock: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
 
     isBestSeller: {
       type: Boolean,

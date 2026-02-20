@@ -49,7 +49,7 @@ export const addMenuItem = async (req, res) => {
       preorder,
       isBestSeller,
       festival,
-      inStock,
+      stock,
     } = req.body;
 
     if (!name || !category || !variants) {
@@ -71,7 +71,7 @@ export const addMenuItem = async (req, res) => {
     }
 
     const slug = slugify(name, { lower: true, strict: true });
-
+const stockValue = Math.max(0, Number(stock) || 0);
     const menuItem = await MenuItem.create({
       name: name.trim(),
       slug,
@@ -85,7 +85,8 @@ export const addMenuItem = async (req, res) => {
       preorder: preorder ? JSON.parse(preorder) : { enabled: false },
       festival: festival || null,
       isBestSeller: isBestSeller === "true" || isBestSeller === true,
-      inStock: inStock !== "false",
+      stock: stockValue,
+  
     });
 
     res.json({ success: true, menuItem });
@@ -102,28 +103,19 @@ export const getMenu = async (req, res) => {
   try {
     const { branch, festival } = req.query;
 
-   const query = {};
-
-// ✅ Apply stock rules ONLY for normal menu
-if (!festival) {
-
-  query.$or = [
+   const query = {
+  stock: { $gt: 0 }, // Always hide out of stock
+  $or: [
     { isAvailable: true },
     { isAvailable: { $exists: false } },
-  ];
-}
+  ],
+};
 
-
-    // ✅ Festival should behave like Best Seller (NO branch dependency)
 if (festival && mongoose.Types.ObjectId.isValid(festival)) {
   query.festival = festival;
-} 
-// ✅ Branch filter ONLY when NOT festival
-else if (branch && mongoose.Types.ObjectId.isValid(branch)) {
+} else if (branch && mongoose.Types.ObjectId.isValid(branch)) {
   query.branches = branch;
 }
-
-
     const menu = await MenuItem.find(query)
       .populate("category", "name")
       .populate("subcategory", "name")
@@ -154,6 +146,7 @@ export const updateMenuItem = async (req, res) => {
       branches,
       preorder,
       isBestSeller,
+      stock,
       removedImages,
       inStock,
       isAvailable,
@@ -189,7 +182,7 @@ export const updateMenuItem = async (req, res) => {
         finalImages.push(url);
       }
     }
-
+const stockValue = Math.max(0, Number(stock) || 0);
     const update = {
       name: name.trim(),
       slug: slugify(name, { lower: true, strict: true }),
@@ -202,7 +195,8 @@ export const updateMenuItem = async (req, res) => {
       branches: branches ? JSON.parse(branches) : item.branches,
       preorder: preorder ? JSON.parse(preorder) : item.preorder,
       isBestSeller: isBestSeller === "true",
-      inStock: inStock !== "false",
+      stock: stockValue,
+ 
       isAvailable: isAvailable !== "false",
       images: finalImages,
     };
