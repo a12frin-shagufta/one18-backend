@@ -10,9 +10,6 @@ import crypto from "crypto";
 import { r2 } from "../config/r2.js";
 import sharp from "sharp";
 
-
-
-
 // ✅ helper upload function
 const uploadFileToR2 = async (file) => {
   // ✅ compress image before upload
@@ -29,12 +26,11 @@ const uploadFileToR2 = async (file) => {
       Key: fileName,
       Body: compressedBuffer,
       ContentType: "image/jpeg",
-    })
+    }),
   );
 
   return `${process.env.R2_PUBLIC_URL}/${fileName}`;
 };
-
 
 export const addMenuItem = async (req, res) => {
   try {
@@ -71,7 +67,7 @@ export const addMenuItem = async (req, res) => {
     }
 
     const slug = slugify(name, { lower: true, strict: true });
-const stockValue = Math.max(0, Number(stock) || 0);
+    const stockValue = Math.max(0, Number(stock) || 0);
     const menuItem = await MenuItem.create({
       name: name.trim(),
       slug,
@@ -86,7 +82,6 @@ const stockValue = Math.max(0, Number(stock) || 0);
       festival: festival || null,
       isBestSeller: isBestSeller === "true" || isBestSeller === true,
       stock: stockValue,
-  
     });
 
     res.json({ success: true, menuItem });
@@ -103,24 +98,20 @@ export const getMenu = async (req, res) => {
   try {
     const { branch, festival } = req.query;
 
-   const query = {
-  $or: [
-    { isAvailable: true },
-    { isAvailable: { $exists: false } },
-  ],
-};
+    const query = {
+      $or: [{ isAvailable: true }, { isAvailable: { $exists: false } }],
+    };
 
-if (festival && mongoose.Types.ObjectId.isValid(festival)) {
-  query.festival = festival;
-} else if (branch && mongoose.Types.ObjectId.isValid(branch)) {
-  query.branches = branch;
-}
+    if (festival && mongoose.Types.ObjectId.isValid(festival)) {
+      query.festival = festival;
+    } else if (branch && mongoose.Types.ObjectId.isValid(branch)) {
+      query.branches = branch;
+    }
     const menu = await MenuItem.find(query)
       .populate("category", "name")
       .populate("subcategory", "name")
       .populate("festival", "name slug bannerImage isActive")
-     .sort({ isBestSeller: -1, createdAt: -1 });
-
+      .sort({ isBestSeller: -1, createdAt: -1 });
 
     res.json(menu);
   } catch (err) {
@@ -128,7 +119,6 @@ if (festival && mongoose.Types.ObjectId.isValid(festival)) {
     res.status(500).json({ message: "Failed to load menu" });
   }
 };
-
 
 /* ======================
    UPDATE MENU ITEM
@@ -167,21 +157,36 @@ export const updateMenuItem = async (req, res) => {
       return res.status(404).json({ message: "Menu item not found" });
     }
 
-    let finalImages = [...item.images];
+    let finalImages = [...item.images]; // start from existing DB images
 
-    // ✅ Remove deleted images from DB list
-    if (removed.length > 0) {
-      finalImages = finalImages.filter((img) => !removed.includes(img));
-    }
+// Parse ordered existing
+let orderedExisting = null;
+try {
+  orderedExisting = req.body.orderedExistingImages
+    ? JSON.parse(req.body.orderedExistingImages)
+    : null;
+} catch {
+  orderedExisting = null;
+}
 
-    // ✅ Upload new images to R2
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const url = await uploadFileToR2(file);
-        finalImages.push(url);
-      }
-    }
-const stockValue = Math.max(0, Number(stock) || 0);
+// If frontend sent ordered list → use it
+if (orderedExisting && Array.isArray(orderedExisting)) {
+  finalImages = orderedExisting;
+}
+
+// Remove deleted images
+if (removed.length > 0) {
+  finalImages = finalImages.filter((img) => !removed.includes(img));
+}
+
+// Upload new images
+if (req.files && req.files.length > 0) {
+  for (const file of req.files) {
+    const url = await uploadFileToR2(file);
+    finalImages.push(url);
+  }
+}
+    const stockValue = Math.max(0, Number(stock) || 0);
     const update = {
       name: name.trim(),
       slug: slugify(name, { lower: true, strict: true }),
@@ -195,14 +200,18 @@ const stockValue = Math.max(0, Number(stock) || 0);
       preorder: preorder ? JSON.parse(preorder) : item.preorder,
       isBestSeller: isBestSeller === "true",
       stock: stockValue,
- 
+
       isAvailable: isAvailable !== "false",
       images: finalImages,
     };
 
-    const updatedItem = await MenuItem.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-    });
+    const updatedItem = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      update,
+      {
+        new: true,
+      },
+    );
 
     res.json({ success: true, item: updatedItem });
   } catch (err) {
