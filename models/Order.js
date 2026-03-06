@@ -136,6 +136,7 @@ deliveryAddress: {
         variant: String,
         price: Number,
         qty: Number,
+        isFreePromo: { type: Boolean, default: false },
       },
     ],
 

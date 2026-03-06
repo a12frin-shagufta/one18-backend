@@ -20,6 +20,7 @@ import postalRoute from "./routes/postalRoute.js";
 import PaynowRoute from "./routes/paynow.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import chatbotRoutes from "./routes/chatbotRoutes.js";
+import promoRoutes from "./routes/promoRoutes.js";
 
 
 
@@ -98,6 +99,7 @@ app.use("/api/postal", postalRoute);
 app.use("/api/paynow", PaynowRoute);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/promo", promoRoutes);
 
 
 

@@ -9,6 +9,11 @@ const menuItemSchema = new mongoose.Schema(
       trim: true,
     },
 
+    isPromoEligible: {
+  type: Boolean,
+  default: false,
+},
+
     slug: {
       type: String,
       unique: true,
