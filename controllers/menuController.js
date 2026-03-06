@@ -201,7 +201,7 @@ if (req.files && req.files.length > 0) {
       isBestSeller: isBestSeller === "true",
       stock: stockValue,
 
-      isAvailable: typeof isAvailable === "boolean" ? isAvailable : item.isAvailable,
+      isAvailable: isAvailable !== undefined ? isAvailable === "true" || isAvailable === true : item.isAvailable,
       images: finalImages,
     };
 
