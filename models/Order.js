@@ -137,6 +137,13 @@ deliveryAddress: {
         price: Number,
         qty: Number,
         isFreePromo: { type: Boolean, default: false },
+        addOns: [          // ✅ ADD THIS
+      {
+        groupName: String,
+        label: String,
+        price: Number,
+      }
+    ],
       },
     ],
 
