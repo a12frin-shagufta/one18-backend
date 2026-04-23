@@ -73,6 +73,21 @@ preorder: {
       },
     ],
 
+
+    addOns: [
+  {
+    groupName: { type: String, required: true }, // e.g. "Add a Drink", "Extra Toppings"
+    required: { type: Boolean, default: false },  // must customer pick one?
+    multiSelect: { type: Boolean, default: false }, // can pick multiple?
+    options: [
+      {
+        label: { type: String, required: true }, // e.g. "Orange Juice"
+        price: { type: Number, required: true, default: 0 }, // e.g. 5
+      }
+    ]
+  }
+],
+
     isAvailable: {
       type: Boolean,
       default: true,
@@ -88,6 +103,8 @@ preorder: {
   default: 0,
   min: 0,
 },
+
+
 
     isBestSeller: {
       type: Boolean,

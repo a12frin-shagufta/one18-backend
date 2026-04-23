@@ -46,6 +46,7 @@ export const addMenuItem = async (req, res) => {
       isBestSeller,
       festival,
       stock,
+      addOns
     } = req.body;
 
     if (!name || !category || !variants) {
@@ -54,6 +55,8 @@ export const addMenuItem = async (req, res) => {
 
     const parsedVariants =
       typeof variants === "string" ? JSON.parse(variants) : variants;
+
+      const parsedAddOns = addOns ? (typeof addOns === "string" ? JSON.parse(addOns) : addOns) : [];
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "At least one image required" });
@@ -77,6 +80,7 @@ export const addMenuItem = async (req, res) => {
       subcategory: subcategory || null,
       images: imageUrls,
       variants: parsedVariants,
+        addOns: parsedAddOns,  
       branches: branches ? JSON.parse(branches) : [],
       preorder: preorder ? JSON.parse(preorder) : { enabled: false },
       festival: festival || null,
@@ -140,6 +144,7 @@ export const updateMenuItem = async (req, res) => {
       inStock,
       isAvailable,
       festival,
+      addOns
     } = req.body;
 
     let removed = [];
@@ -151,6 +156,8 @@ export const updateMenuItem = async (req, res) => {
 
     const parsedVariants =
       typeof variants === "string" ? JSON.parse(variants) : variants;
+
+      const parsedAddOns = addOns ? (typeof addOns === "string" ? JSON.parse(addOns) : addOns) : [];
 
     const item = await MenuItem.findById(req.params.id);
     if (!item) {
@@ -203,6 +210,7 @@ if (req.files && req.files.length > 0) {
 
       isAvailable: isAvailable !== undefined ? isAvailable === "true" || isAvailable === true : item.isAvailable,
       images: finalImages,
+      addOns: parsedAddOns,
     };
 
     const updatedItem = await MenuItem.findByIdAndUpdate(
