@@ -136,6 +136,11 @@ deliveryAddress: {
         variant: String,
         price: Number,
         qty: Number,
+        cakeMessage: {
+      type: String,
+      default: "",
+    },
+
         isFreePromo: { type: Boolean, default: false },
         addOns: [          // ✅ ADD THIS
       {

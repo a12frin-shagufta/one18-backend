@@ -259,6 +259,20 @@ console.log(JSON.stringify({
 // console.log(JSON.stringify(orderPayloadForSave, null, 2));
 const orderNumber = await getNextOrderNumber();
 
+// ✅ Normalize items (include cakeMessage safely)
+const normalizedItems = items.map((item) => ({
+  productId: item.productId,
+  name: item.name,
+  variant: item.variant,
+  price: item.price,
+  qty: item.qty,
+
+  // ✅ ADD THIS
+  cakeMessage: item.cakeMessage || "",
+
+  addOns: item.addOns || [],
+}));
+
    const order = await Order.create({
 branch: branchData?._id || null,
 orderNumber,
@@ -285,8 +299,9 @@ orderNumber,
   lng: deliveryLng,
         }
       : null,
+       items: normalizedItems,
 
-  items,
+
   subtotal,
   deliveryFee,
   totalAmount,
