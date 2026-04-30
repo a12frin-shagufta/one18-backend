@@ -2,9 +2,12 @@ import axios from "axios";
 
 export async function validateSingaporePostal(postalCode) {
   try {
+      console.log("📦 Incoming postal:", postalCode);
     if (!/^\d{6}$/.test(postalCode)) {
+       console.log("❌ Invalid format");
       return { valid: false };
     }
+       console.log("🔑 API KEY:", process.env.GOOGLE_MAPS_API_KEY);
 
     const res = await axios.get(
       "https://maps.googleapis.com/maps/api/geocode/json",
@@ -17,6 +20,7 @@ export async function validateSingaporePostal(postalCode) {
         },
       }
     );
+     console.log("🌍 GOOGLE RESPONSE:", res.data);
 
     if (res.data.status !== "OK" || !res.data.results.length) {
       return { valid: false };
