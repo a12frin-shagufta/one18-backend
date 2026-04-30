@@ -1,59 +1,22 @@
 import axios from "axios";
 
-export async function validateSingaporePostal(postalCode) {
-  try {
-      console.log("📦 Incoming postal:", postalCode);
-    if (!/^\d{6}$/.test(postalCode)) {
-       console.log("❌ Invalid format");
-      return { valid: false };
-    }
-       console.log("🔑 API KEY:", process.env.GOOGLE_MAPS_API_KEY);
-
-    const res = await axios.get(
-      "https://maps.googleapis.com/maps/api/geocode/json",
-      {
-        params: {
-          address: postalCode,
-          components: "country:SG",
-          region: "sg",
-          key: process.env.GOOGLE_MAPS_API_KEY,
-        },
-      }
-    );
-     console.log("🌍 GOOGLE RESPONSE:", res.data);
-
-    if (res.data.status !== "OK" || !res.data.results.length) {
-      return { valid: false };
-    }
-
-    const result = res.data.results[0];
-
-    const components = result.address_components;
-
-    const area =
-      components.find(c => c.types.includes("sublocality_level_1"))?.long_name ||
-      components.find(c => c.types.includes("neighborhood"))?.long_name ||
-      components.find(c => c.types.includes("locality"))?.long_name ||
-      components.find(c => c.types.includes("administrative_area_level_2"))?.long_name;
-
-    if (!area) {
-      return { valid: false };
-    }
-
-    // ✅ ADD THIS
-    const lat = result.geometry.location.lat;
-    const lng = result.geometry.location.lng;
-
-    return {
-      valid: true,
-      area,
-      lat,
-      lng,
-      formattedAddress: result.formatted_address,
-    };
-
-  } catch (err) {
-    console.error("Postal validation error:", err.message);
+export function validateSingaporePostal(postalCode) {
+  if (!/^\d{6}$/.test(postalCode)) {
     return { valid: false };
   }
+
+  const prefix = postalCode.slice(0, 2);
+
+  let area = "Singapore";
+
+  // Optional: basic area mapping
+  if (["52","53","54","55"].includes(prefix)) area = "Tampines";
+  else if (["67","68","69"].includes(prefix)) area = "Woodlands";
+  else if (["18","19"].includes(prefix)) area = "Bugis";
+  else if (["23","24"].includes(prefix)) area = "Orchard";
+
+  return {
+    valid: true,
+    area,
+  };
 }
