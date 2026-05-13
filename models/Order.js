@@ -162,6 +162,13 @@ deliveryAddress: {
       default: "pending",
     },
 
+
+    printStatus: {
+  type: String,
+  enum: ["pending", "printed"],
+  default: "pending",
+},
+
  lalamoveStatus: {
   type: String,
   enum: [
