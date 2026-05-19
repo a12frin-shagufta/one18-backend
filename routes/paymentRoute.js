@@ -438,5 +438,84 @@ router.post("/refund/:id", adminAuth, async (req, res) => {
   }
 });
 
+/* ==============================
+   STRIPE WEBHOOK
+================================ */
+router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    errlog("Webhook signature failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const orderId = session.metadata?.orderId;
+
+    log("Webhook received for orderId:", orderId);
+
+    try {
+      const order = await Order.findById(orderId);
+
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      // Already paid — skip
+      if (order.paymentStatus === "paid") {
+        log("Already paid, skipping...");
+        return res.json({ received: true });
+      }
+
+      // ✅ Update order
+      order.paymentStatus = "paid";
+      order.paymentMethod = "stripe";
+      order.transactionId = session.payment_intent || session.id;
+      order.creditedAccount = "Stripe";
+      order.paidAmount = session.amount_total / 100;
+      order.paidAt = new Date();
+      await order.save();
+
+      log("✅ Order updated via webhook");
+
+      // ✅ Customer email
+      if (order.customer?.email) {
+        sendEmail({
+          to: order.customer.email,
+          subject: `Order Confirmed ✅ | ONE18 Bakery`,
+          html: buildOrderDetailsHTML(order),
+        })
+          .then(() => log("✅ Customer email sent via webhook"))
+          .catch((e) => errlog("❌ Customer email failed:", e.message));
+      }
+
+      // ✅ Admin email
+      const ADMIN_EMAIL = process.env.ADMIN_ORDER_EMAIL || process.env.MAIL_FROM_EMAIL;
+      if (ADMIN_EMAIL) {
+        sendEmail({
+          to: ADMIN_EMAIL,
+          subject: `🚨 New Order Received | ONE18 Bakery`,
+          html: buildOrderDetailsHTML(order),
+        })
+          .then(() => log("✅ Admin email sent via webhook"))
+          .catch((e) => errlog("❌ Admin email failed:", e.message));
+      }
+
+    } catch (err) {
+      errlog("Webhook order update failed:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  }
+
+  res.json({ received: true });
+});
+
+
 
 export default router;

@@ -27,6 +27,13 @@ import promoRoutes from "./routes/promoRoutes.js";
 
 
 const app = express();
+
+app.use(
+  "/api/payment/webhook",
+  express.raw({ type: "application/json" })
+);
+
+
 app.use(express.json());
 
 
