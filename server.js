@@ -64,7 +64,7 @@ app.use(
       if (origin.endsWith(".vercel.app")) return cb(null, true);
 
       // ✅ do NOT throw error (prevents CORS headers)
-      return cb(null, false);
+      return cb(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
