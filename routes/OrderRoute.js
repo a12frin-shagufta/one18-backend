@@ -6,7 +6,8 @@ import {
   bookLalamove,
   markOrderPaidByCustomer,
   getLalamoveQuote,
-  markOrderPrinted
+  markOrderPrinted,
+  deleteOrder,
 } from "../controllers/orderController.js";
 import adminAuth from "../middleware/adminAuth.js";
 
@@ -20,6 +21,7 @@ router.put("/:id/lalamove/request", adminAuth, bookLalamove);
 router.put("/:id/status", adminAuth, updateOrderStatus);
 router.put("/:id/mark-paid", markOrderPaidByCustomer);
 router.put("/:id/printed", adminAuth, markOrderPrinted);
+router.delete("/:id", adminAuth, deleteOrder);
 // router.post("/lalamove-quote", getLalamoveQuote);
 
 
