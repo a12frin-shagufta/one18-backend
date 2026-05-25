@@ -381,7 +381,7 @@ export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
   .sort({ createdAt: -1 })
-  .populate("items.productId", "name")
+.populate("items.productId", "name description")
   .populate("branch", "name address");
 for (const order of orders) {
   await autoVerifyStripeOrder(order);
