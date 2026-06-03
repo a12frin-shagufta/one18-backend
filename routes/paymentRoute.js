@@ -57,18 +57,50 @@ router.post("/create-checkout-session", async (req, res) => {
     log("✅ Order saved:", savedOrder._id.toString());
 
     // ✅ Convert cart items into Stripe line items
-    const line_items = (items || []).map((item, idx) => {
-      log(`Line item ${idx + 1}:`, item?.name, "x", item?.qty);
+ // ✅ Convert cart items into Stripe line items
+const line_items = [];
 
-      return {
-        price_data: {
-          currency: "sgd",
-          product_data: { name: item.name },
-          unit_amount: Math.round(item.price * 100),
-        },
-        quantity: item.qty,
-      };
+(items || []).forEach((item, idx) => {
+  log(`Line item ${idx + 1}:`, item?.name, "x", item?.qty);
+
+  // Base product price
+  line_items.push({
+    price_data: {
+      currency: "sgd",
+      product_data: { name: item.name },
+      unit_amount: Math.round(item.price * 100),
+    },
+    quantity: item.qty,
+  });
+
+  // ✅ Cake wording fee ($5 per item)
+  if (item.cakeMessageFee && item.cakeMessageFee > 0) {
+    line_items.push({
+      price_data: {
+        currency: "sgd",
+        product_data: { name: `Cake Wording: "${item.cakeMessage || 'Custom'}"` },
+        unit_amount: Math.round(item.cakeMessageFee * 100),
+      },
+      quantity: item.qty,
     });
+  }
+
+  // ✅ Add-ons (if any)
+  if (item.addOns && item.addOns.length > 0) {
+    item.addOns.forEach((addon) => {
+      if (addon.price > 0) {
+        line_items.push({
+          price_data: {
+            currency: "sgd",
+            product_data: { name: `Add-on: ${addon.label}` },
+            unit_amount: Math.round(addon.price * 100),
+          },
+          quantity: item.qty,
+        });
+      }
+    });
+  }
+});
 
     if (deliveryFee > 0) {
       log("Adding delivery fee line item...");
