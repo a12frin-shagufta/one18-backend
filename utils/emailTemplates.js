@@ -1,11 +1,21 @@
 export const buildOrderDetailsHTML = (order) => {
-  const itemsHtml = order.items.map(i => `
+const itemsHtml = order.items.map(i => {
+  const cakeMsg = i.cakeMessage
+    ? `<br/><small style="color:#d63384">🎂 "${i.cakeMessage}" (+SGD 5.00)</small>`
+    : "";
+
+  const addOnsMsg = (i.addOns || [])
+    .map(a => `<br/><small>+ ${a.label}${a.price > 0 ? ` (+SGD ${a.price.toFixed(2)})` : ""}</small>`)
+    .join("");
+
+  return `
     <tr>
-      <td>${i.name} ${i.variant ? `(${i.variant})` : ""}</td>
+      <td>${i.name} ${i.variant ? `(${i.variant})` : ""}${cakeMsg}${addOnsMsg}</td>
       <td align="center">${i.qty}</td>
       <td align="right">SGD ${(i.price * i.qty).toFixed(2)}</td>
     </tr>
-  `).join("");
+  `;
+}).join("");
 
   const customerBlock = `
     <h3>Customer Details</h3>
