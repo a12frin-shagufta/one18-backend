@@ -76,16 +76,33 @@ preorder: {
 
     addOns: [
   {
-    groupName: { type: String, required: true }, // e.g. "Add a Drink", "Extra Toppings"
-    required: { type: Boolean, default: false },  // must customer pick one?
-    multiSelect: { type: Boolean, default: false }, // can pick multiple?
+    groupName: { type: String, required: true }, // e.g. "Add a Drink", "Choose up to 6 flavours"
+    required: { type: Boolean, default: false },   // must customer pick at least one?
+    multiSelect: { type: Boolean, default: false }, // can pick more than one option?
+
+    // NEW: controls whether options show a price field or a quantity field
+    mode: {
+      type: String,
+      enum: ["price", "quantity"],
+      default: "price",
+    },
+
+    // NEW: overall limit for this group
+    // - in "price" mode: max number of different options customer can select
+    // - in "quantity" mode: max total quantity across all options (e.g. 12 pcs)
+    maxSelect: {
+      type: Number,
+      default: null,
+    },
+
     options: [
       {
-        label: { type: String, required: true }, // e.g. "Orange Juice"
-        price: { type: Number, required: true, default: 0 }, // e.g. 5
-      }
-    ]
-  }
+        label: { type: String, required: true }, // e.g. "Orange Juice" or "Nutella"
+        price: { type: Number, default: 0 },       // used only when group mode = "price"
+        maxQuantity: { type: Number, default: null }, // optional per-option cap, used only when mode = "quantity"
+      },
+    ],
+  },
 ],
 
     isAvailable: {
