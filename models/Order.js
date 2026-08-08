@@ -142,11 +142,20 @@ deliveryAddress: {
     },
 
         isFreePromo: { type: Boolean, default: false },
-        addOns: [          // ✅ ADD THIS
+        addOns: [
       {
         groupName: String,
         label: String,
         price: Number,
+
+        // how many of this option the customer chose.
+        // 1 for normal paid extras, 2/4/6... for quantity bundles
+        // (e.g. 4 Nutella out of a 12pc croissant box)
+        quantity: { type: Number, default: 1, min: 0 },
+
+        // copied from the menu item so the kitchen ticket and any
+        // later re-pricing know how to read this line
+        mode: { type: String, enum: ["price", "quantity"], default: "price" },
       }
     ],
       },

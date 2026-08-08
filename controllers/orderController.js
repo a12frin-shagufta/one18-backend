@@ -7,6 +7,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 
 
 import { buildOrderDetailsHTML } from "../utils/emailTemplates.js";
+import { validateSelection } from "../utils/addonRules.js";
 
 import Counter from "../models/Counter.js";
 import Stripe from "stripe";
@@ -247,6 +248,35 @@ console.log(JSON.stringify({
           message: `${menuItem.name} is a same-day item and cannot be pre-ordered`,
         });
       }
+
+      // ✅ VALIDATE ADD-ONS AGAINST THE MENU ITEM'S OWN RULES
+      // The storefront already blocks bad combinations, but a crafted request
+      // can still post "1 Nutella + 11 Biscoff" — this is the real gate.
+      for (const group of menuItem.addOns || []) {
+        // collect what the customer sent for THIS group: { label: quantity }
+        const selection = {};
+        for (const line of orderItem.addOns || []) {
+          if (line.groupName !== group.groupName) continue;
+          const q = Number(line.quantity) || 1;
+          selection[line.label] = (selection[line.label] || 0) + q;
+        }
+
+        // labels must actually exist on the menu item
+        const validLabels = new Set((group.options || []).map((o) => o.label));
+        const unknown = Object.keys(selection).find((l) => !validLabels.has(l));
+        if (unknown) {
+          return res.status(400).json({
+            message: `${menuItem.name} — "${unknown}" is not an option in ${group.groupName}`,
+          });
+        }
+
+        const { valid, errors } = validateSelection(group, selection);
+        if (!valid) {
+          return res.status(400).json({
+            message: `${menuItem.name} — ${group.groupName}: ${errors[0]}`,
+          });
+        }
+      }
     }
 
     // ✅ CREATE ORDER
@@ -270,7 +300,13 @@ const normalizedItems = items.map((item) => ({
   // ✅ ADD THIS
   cakeMessage: item.cakeMessage || "",
 
-  addOns: item.addOns || [],
+  addOns: (item.addOns || []).map((a) => ({
+    groupName: a.groupName,
+    label: a.label,
+    price: Number(a.price) || 0,
+    quantity: Number(a.quantity) || 1,
+    mode: a.mode === "quantity" ? "quantity" : "price",
+  })),
 }));
 
    const order = await Order.create({

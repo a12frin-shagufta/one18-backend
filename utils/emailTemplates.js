@@ -4,8 +4,16 @@ const itemsHtml = order.items.map(i => {
     ? `<br/><small style="color:#d63384">🎂 "${i.cakeMessage}" (+SGD 5.00)</small>`
     : "";
 
+  // Quantity bundles need the count on the ticket, otherwise the kitchen sees
+  // "+ Nutella, + Biscoff" with no idea how many of each to bake.
   const addOnsMsg = (i.addOns || [])
-    .map(a => `<br/><small>+ ${a.label}${a.price > 0 ? ` (+SGD ${a.price.toFixed(2)})` : ""}</small>`)
+    .map(a => {
+      const qty = Number(a.quantity) || 1;
+      const count = qty > 1 ? ` &times; ${qty}` : "";
+      const extra =
+        a.price > 0 ? ` (+SGD ${(a.price * qty).toFixed(2)})` : "";
+      return `<br/><small>+ ${a.label}${count}${extra}</small>`;
+    })
     .join("");
 
   return `

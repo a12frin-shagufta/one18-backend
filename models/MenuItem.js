@@ -76,30 +76,52 @@ preorder: {
 
     addOns: [
   {
-    groupName: { type: String, required: true }, // e.g. "Add a Drink", "Choose up to 6 flavours"
+    groupName: { type: String, required: true }, // e.g. "Add a Drink", "Choose your flavours"
     required: { type: Boolean, default: false },   // must customer pick at least one?
     multiSelect: { type: Boolean, default: false }, // can pick more than one option?
 
-    // NEW: controls whether options show a price field or a quantity field
+    // controls whether options show a price field or a quantity field
     mode: {
       type: String,
       enum: ["price", "quantity"],
       default: "price",
     },
 
-    // NEW: overall limit for this group
-    // - in "price" mode: max number of different options customer can select
-    // - in "quantity" mode: max total quantity across all options (e.g. 12 pcs)
+    // ---- "price" mode only ----
+    // max number of different options the customer can select
     maxSelect: {
       type: Number,
       default: null,
     },
 
+    // ---- "quantity" mode only ----
+    // customers move in multiples of this (e.g. 2 = croissants in pairs)
+    step: { type: Number, default: 1, min: 1 },
+
+    // a chosen option must be at least this many (e.g. 2 per flavour)
+    minPerOption: { type: Number, default: 0, min: 0 },
+
+    // optional cap per option, null = no cap
+    maxPerOption: { type: Number, default: null },
+
+    // max number of DIFFERENT options, e.g. 6 flavours
+    maxOptions: { type: Number, default: null },
+
+    // the bundle size, e.g. 12 pieces
+    totalQty: { type: Number, default: null },
+
+    // "exact" = must add up to totalQty, "upTo" = totalQty is a ceiling
+    totalRule: {
+      type: String,
+      enum: ["exact", "upTo"],
+      default: "exact",
+    },
+
     options: [
       {
         label: { type: String, required: true }, // e.g. "Orange Juice" or "Nutella"
-        price: { type: Number, default: 0 },       // used only when group mode = "price"
-        maxQuantity: { type: Number, default: null }, // optional per-option cap, used only when mode = "quantity"
+        price: { type: Number, default: 0 },     // used only when mode = "price"
+        maxQuantity: { type: Number, default: null }, // per-option cap, overrides maxPerOption
       },
     ],
   },
