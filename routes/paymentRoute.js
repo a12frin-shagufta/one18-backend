@@ -193,6 +193,10 @@ if (order.paymentStatus === "paid") {
   return res.json({
     success: true,
     message: "Already verified ✅",
+    alreadyVerified: true, // ✅ client uses this to skip a duplicate Purchase
+    orderNumber: order.orderNumber,
+    amount: order.paidAmount ?? order.totalAmount,
+    currency: "SGD",
   });
 }
 
@@ -212,6 +216,12 @@ await order.save();
     res.json({
       success: true,
       message: "Payment verified ✅ (email sending in background)",
+      // ✅ so the client can report a real Purchase value, and dedupe on
+      // orderNumber instead of firing again on every refresh
+      alreadyVerified: false,
+      orderNumber: order.orderNumber,
+      amount: order.paidAmount,
+      currency: "SGD",
     });
 
     // ✅ EMAIL (BACKGROUND - NO AWAIT)
