@@ -231,6 +231,86 @@ if (req.files && req.files.length > 0) {
 /* ======================
    DELETE MENU ITEM
 ====================== */
+/* ======================
+   DUPLICATE MENU ITEM
+   Copies everything (variants, add-on rules, branches, preorder, images)
+   into a new UNPUBLISHED item so an admin can tweak a name/price instead of
+   rebuilding a complex bundle from scratch.
+====================== */
+export const duplicateMenuItem = async (req, res) => {
+  try {
+    const source = await MenuItem.findById(req.params.id).lean();
+    if (!source) {
+      return res.status(404).json({ message: "Menu item not found" });
+    }
+
+    // strip identity + mongo bookkeeping
+    delete source._id;
+    delete source.__v;
+    delete source.createdAt;
+    delete source.updatedAt;
+
+    // slug is unique, so find a name/slug pair that's actually free
+    const baseName = (req.body?.name || `${source.name} (Copy)`).trim();
+    let name = baseName;
+    let slug = slugify(name, { lower: true, strict: true });
+
+    for (let n = 2; await MenuItem.exists({ slug }); n++) {
+      name = `${baseName} ${n}`;
+      slug = slugify(name, { lower: true, strict: true });
+      if (n > 50) {
+        return res
+          .status(409)
+          .json({ message: "Too many copies of this item — rename one first" });
+      }
+    }
+
+    const copy = await MenuItem.create({
+      ...source,
+      name,
+      slug,
+      // A duplicate is a draft. Never let a half-edited copy go live, and don't
+      // silently widen a promo to a second item.
+      isAvailable: false,
+      isPromoEligible: false,
+      // NOTE: images are the SAME R2 URLs as the original. deleteMenuItem only
+      // removes the document, not the files, so deleting either one is safe.
+    });
+
+    res.status(201).json({ success: true, item: copy });
+  } catch (err) {
+    console.error("DUPLICATE MENU ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ======================
+   SET PUBLISH STATE
+   The admin list used to flip this with a full PUT that omitted addOns,
+   subcategory and festival — which wiped them. This touches one field only.
+====================== */
+export const setPublishState = async (req, res) => {
+  try {
+    const isAvailable =
+      req.body?.isAvailable === true || req.body?.isAvailable === "true";
+
+    const item = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      { isAvailable },
+      { new: true },
+    );
+
+    if (!item) {
+      return res.status(404).json({ message: "Menu item not found" });
+    }
+
+    res.json({ success: true, isAvailable: item.isAvailable });
+  } catch (err) {
+    console.error("SET PUBLISH ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const deleteMenuItem = async (req, res) => {
   try {
     await MenuItem.findByIdAndDelete(req.params.id);
