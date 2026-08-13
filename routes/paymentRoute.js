@@ -85,22 +85,59 @@ const line_items = [];
     });
   }
 
-  // ✅ Add-ons (if any)
+  // ❌ REMOVED: a separate line item per paid add-on.
+  //
+  // item.price is built on the frontend as (basePrice + addOnsTotal), so the
+  // add-ons are ALREADY inside the unit_amount above. Charging them again here
+  // double-billed every paid extra — e.g. a $38 bundle + $35 drink was stored
+  // as $73 and then charged $73 + $35 = $108.
+  //
+  // Add-ons are still shown to the customer: they're listed in the product
+  // description below, on the order confirmation email, and on the receipt.
   if (item.addOns && item.addOns.length > 0) {
-    item.addOns.forEach((addon) => {
-      if (addon.price > 0) {
-        line_items.push({
-          price_data: {
-            currency: "sgd",
-            product_data: { name: `Add-on: ${addon.label}` },
-            unit_amount: Math.round(addon.price * 100),
-          },
-          quantity: item.qty,
-        });
-      }
-    });
+    const names = item.addOns
+      .map((a) => `${a.label}${a.quantity > 1 ? ` x${a.quantity}` : ""}`)
+      .join(", ");
+    const last = line_items[line_items.length - 1];
+    if (last?.price_data?.product_data) {
+      last.price_data.product_data.description = `Includes: ${names}`;
+    }
   }
 });
+
+/* ==================================================================
+   PRICE GUARD
+   ------------------------------------------------------------------
+   The cart total and the Stripe charge are calculated in two different
+   places. When they drift apart, the customer is silently over- or
+   under-charged and nobody finds out until someone checks their bank app.
+
+   This makes that drift LOUD: if what Stripe is about to charge doesn't
+   match the order total we saved, we refuse to create the session.
+   A failed checkout is recoverable. A wrong charge is not.
+================================================================== */
+const stripeTotal = line_items.reduce(
+  (sum, li) => sum + li.price_data.unit_amount * li.quantity,
+  0,
+);
+const expectedTotal = Math.round(Number(orderPayload?.totalAmount || 0) * 100);
+
+if (expectedTotal > 0 && stripeTotal !== expectedTotal) {
+  errlog(
+    "PRICE MISMATCH — refusing to charge.",
+    "stripe:", stripeTotal / 100,
+    "expected:", expectedTotal / 100,
+    "order:", orderNumber,
+  );
+
+  // don't leave a pending order behind for a checkout we blocked
+  await Order.findByIdAndDelete(savedOrder._id).catch(() => {});
+
+  return res.status(400).json({
+    message:
+      "We couldn't confirm the total for this order. Please refresh your cart and try again, or contact us and we'll take the order directly.",
+  });
+}
 
     if (deliveryFee > 0) {
       log("Adding delivery fee line item...");
