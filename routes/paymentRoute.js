@@ -105,39 +105,6 @@ const line_items = [];
   }
 });
 
-/* ==================================================================
-   PRICE GUARD
-   ------------------------------------------------------------------
-   The cart total and the Stripe charge are calculated in two different
-   places. When they drift apart, the customer is silently over- or
-   under-charged and nobody finds out until someone checks their bank app.
-
-   This makes that drift LOUD: if what Stripe is about to charge doesn't
-   match the order total we saved, we refuse to create the session.
-   A failed checkout is recoverable. A wrong charge is not.
-================================================================== */
-const stripeTotal = line_items.reduce(
-  (sum, li) => sum + li.price_data.unit_amount * li.quantity,
-  0,
-);
-const expectedTotal = Math.round(Number(orderPayload?.totalAmount || 0) * 100);
-
-if (expectedTotal > 0 && stripeTotal !== expectedTotal) {
-  errlog(
-    "PRICE MISMATCH — refusing to charge.",
-    "stripe:", stripeTotal / 100,
-    "expected:", expectedTotal / 100,
-    "order:", orderNumber,
-  );
-
-  // don't leave a pending order behind for a checkout we blocked
-  await Order.findByIdAndDelete(savedOrder._id).catch(() => {});
-
-  return res.status(400).json({
-    message:
-      "We couldn't confirm the total for this order. Please refresh your cart and try again, or contact us and we'll take the order directly.",
-  });
-}
 
     if (deliveryFee > 0) {
       log("Adding delivery fee line item...");
@@ -148,6 +115,41 @@ if (expectedTotal > 0 && stripeTotal !== expectedTotal) {
           unit_amount: Math.round(deliveryFee * 100),
         },
         quantity: 1,
+      });
+    }
+
+    /* ==================================================================
+       PRICE GUARD  —  must run AFTER every line item is pushed
+       ------------------------------------------------------------------
+       ⚠️ ORDERING MATTERS. This block previously sat ABOVE the delivery-fee
+       line item, so on every DELIVERY order it compared an item-only Stripe
+       total against a total that included delivery, and blocked the order.
+       Pickup orders (deliveryFee = 0) were unaffected, which is why it took
+       a customer complaint to surface. Keep this check last.
+    ================================================================== */
+    const stripeTotal = line_items.reduce(
+      (sum, li) => sum + li.price_data.unit_amount * li.quantity,
+      0,
+    );
+    const expectedTotal = Math.round(
+      Number(orderPayload?.totalAmount || 0) * 100,
+    );
+
+    // 1-cent tolerance so floating-point rounding can never block a checkout
+    if (expectedTotal > 0 && Math.abs(stripeTotal - expectedTotal) > 1) {
+      errlog(
+        "PRICE MISMATCH — refusing to charge.",
+        "stripe:", stripeTotal / 100,
+        "expected:", expectedTotal / 100,
+        "deliveryFee:", deliveryFee,
+        "order:", orderNumber,
+      );
+
+      await Order.findByIdAndDelete(savedOrder._id).catch(() => {});
+
+      return res.status(400).json({
+        message:
+          "We couldn't confirm the total for this order. Please refresh your cart and try again, or contact us and we'll take the order directly.",
       });
     }
 
