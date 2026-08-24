@@ -9,6 +9,7 @@ import { exportPaymentReport } from "../controllers/paymentReportController.js";
 import adminAuth from "../middleware/adminAuth.js";
 import Counter from "../models/Counter.js";
 
+import { calculateDeliveryFee } from "./deliveryRoutes.js";
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -37,18 +38,61 @@ router.post("/create-checkout-session", async (req, res) => {
   log("✅ create-checkout-session HIT");
 
   try {
-    const { items, deliveryFee, orderPayload } = req.body;
+    const { items, deliveryFee: clientDeliveryFee, orderPayload } = req.body;
 
     log("Items length:", items?.length);
-    log("Delivery Fee:", deliveryFee);
+    log("Delivery Fee (from browser):", clientDeliveryFee);
     log("Customer Email:", orderPayload?.customer?.email);
     log("Fulfillment Type:", orderPayload?.fulfillmentType);
 
-    // ✅ 1) Save order in DB first (pending)
+    /* ==================================================================
+       RECOMPUTE THE MONEY ON THE SERVER
+       ------------------------------------------------------------------
+       The browser calculates the delivery fee once, when the customer
+       enters their postcode, and stores it. If they then keep adding
+       items, that stored fee never updates — so a $105 order kept the
+       $6.99 fee it was quoted at $45, instead of qualifying for free
+       delivery over $60.
+
+       Everything below is derived from the items actually being charged,
+       so the fee is always right and can't be tampered with either.
+    ================================================================== */
+    const itemsSubtotal = (items || []).reduce((sum, i) => {
+      const line = (Number(i.price) || 0) * (Number(i.qty) || 0);
+      const wording = (Number(i.cakeMessageFee) || 0) * (Number(i.qty) || 0);
+      return sum + line + wording;
+    }, 0);
+
+    const isDelivery = orderPayload?.fulfillmentType === "delivery";
+    const feeResult = calculateDeliveryFee(itemsSubtotal);
+
+    // Minimum order applies to delivery only — pickup has no minimum.
+    if (isDelivery && !feeResult.eligible) {
+      return res.status(400).json({ message: feeResult.reason });
+    }
+
+    const deliveryFee = isDelivery ? feeResult.deliveryFee : 0;
+    const totalAmount = itemsSubtotal + deliveryFee;
+
+    if (Number(clientDeliveryFee || 0) !== deliveryFee) {
+      log(
+        "⚠️ Delivery fee corrected — browser said",
+        clientDeliveryFee,
+        "server says",
+        deliveryFee,
+        "for subtotal",
+        itemsSubtotal.toFixed(2),
+      );
+    }
+
+    // ✅ 1) Save order in DB first (pending), using the SERVER's figures
     const orderNumber = await getNextOrderNumber();
 
     const savedOrder = await Order.create({
       ...orderPayload,
+      subtotal: itemsSubtotal,
+      deliveryFee,
+      totalAmount,
       orderNumber,
       status: "pending",
       paymentStatus: "pending",
@@ -131,9 +175,10 @@ const line_items = [];
       (sum, li) => sum + li.price_data.unit_amount * li.quantity,
       0,
     );
-    const expectedTotal = Math.round(
-      Number(orderPayload?.totalAmount || 0) * 100,
-    );
+    // Compare against the server's own total. Both sides are now computed
+    // here, so this is a sanity check on line-item construction rather than
+    // a trust check on the browser.
+    const expectedTotal = Math.round(totalAmount * 100);
 
     // 1-cent tolerance so floating-point rounding can never block a checkout
     if (expectedTotal > 0 && Math.abs(stripeTotal - expectedTotal) > 1) {
