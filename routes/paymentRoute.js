@@ -582,8 +582,38 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === "checkout.session.completed") {
+  /* ==================================================================
+     WHICH EVENTS MARK AN ORDER PAID
+     ------------------------------------------------------------------
+     Cards settle immediately: checkout.session.completed arrives with
+     payment_status "paid".
+
+     PayNow does NOT. It's an asynchronous method — the customer scans the
+     QR and the bank transfer clears seconds to minutes later. Stripe sends
+     checkout.session.completed straight away with payment_status "unpaid",
+     then checkout.session.async_payment_succeeded once the money lands.
+
+     Listening only for "completed" meant PayNow orders sat on "pending"
+     forever even though the customer had paid, and no confirmation email
+     was ever sent. Both events are handled now, and the payment_status
+     check below stops an unpaid session being marked paid.
+  ================================================================== */
+  const PAID_EVENTS = [
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+  ];
+
+  if (PAID_EVENTS.includes(event.type)) {
     const session = event.data.object;
+
+    // A PayNow "completed" event arrives before the funds clear. Ignore it
+    // and wait for async_payment_succeeded.
+    if (session.payment_status !== "paid") {
+      log(
+        `Session ${session.id} is "${session.payment_status}" — waiting for payment to clear`,
+      );
+      return res.json({ received: true });
+    }
     const orderId = session.metadata?.orderId;
 
     log("Webhook received for orderId:", orderId);
@@ -636,6 +666,23 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     } catch (err) {
       errlog("Webhook order update failed:", err.message);
       return res.status(500).json({ message: err.message });
+    }
+  }
+
+  /* PayNow can also fail or expire — the customer scans, then never pays.
+     Record it so the order doesn't look identical to one still waiting. */
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object;
+    const orderId = session.metadata?.orderId;
+    try {
+      const order = await Order.findById(orderId);
+      if (order && order.paymentStatus !== "paid") {
+        order.paymentStatus = "rejected";
+        await order.save();
+        log("PayNow payment failed for order", order.orderNumber);
+      }
+    } catch (err) {
+      errlog("async_payment_failed handling error:", err.message);
     }
   }
 
