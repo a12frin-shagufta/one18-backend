@@ -7,8 +7,8 @@ const router = express.Router();
    DELIVERY PRICING  (client spec, 10 Aug 2026)
    --------------------------------------------------------------------------
      • Minimum order for delivery: $30
-     • $30.00 – $59.99  ->  $6.99
-     • $60.00 and above ->  free
+     • $30.00 – $79.99  ->  $8.99
+     • $80.00 and above ->  free
      • Self-pickup: no minimum, no fee (this route isn't called for pickup)
 
    Flat island-wide pricing replaced the old prefix-based $15 / $20 zones and
@@ -20,8 +20,8 @@ const router = express.Router();
    ========================================================================== */
 export const DELIVERY_RULES = {
   minimumOrder: 30,
-  standardFee: 6.99,
-  freeDeliveryFrom: 60,
+  standardFee: 8.99,      // was 6.99 — changed 19 Sep 2026
+  freeDeliveryFrom: 80,   // was 60   — changed 19 Sep 2026
 };
 
 /**
