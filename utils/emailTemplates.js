@@ -25,6 +25,26 @@ const itemsHtml = order.items.map(i => {
   `;
 }).join("");
 
+  const escapeHtml = (str) =>
+    String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+  /* Order notes were saved on every order but never included in this email,
+     so instructions like "change 1x hot latte to hot teh tarik" reached the
+     database and nowhere else. Placed above the items, and highlighted, so
+     whoever reads or prints this sees it before the item list. */
+  const note = order.customer?.message?.trim();
+  const notesBlock = note
+    ? `
+    <div style="background:#fff8e1;border:2px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:16px 0">
+      <p style="margin:0 0 4px;font-weight:bold;color:#92400e">📝 Order Notes</p>
+      <p style="margin:0;color:#78350f;white-space:pre-wrap">${escapeHtml(note)}</p>
+    </div>`
+    : "";
+
   const customerBlock = `
     <h3>Customer Details</h3>
     <p>
@@ -65,6 +85,8 @@ const itemsHtml = order.items.map(i => {
     ${customerBlock}
 
     ${order.fulfillmentType === "delivery" ? deliveryBlock : pickupBlock}
+
+    ${notesBlock}
 
     <h3>Items</h3>
 
