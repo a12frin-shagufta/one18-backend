@@ -9,6 +9,7 @@ import { exportPaymentReport } from "../controllers/paymentReportController.js";
 import adminAuth from "../middleware/adminAuth.js";
 import Counter from "../models/Counter.js";
 
+import moment from "moment-timezone";
 import { calculateDeliveryFee } from "./deliveryRoutes.js";
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -41,6 +42,68 @@ router.post("/create-checkout-session", async (req, res) => {
     const { items, deliveryFee: clientDeliveryFee, orderPayload } = req.body;
 
     log("Items length:", items?.length);
+
+    /* ==================================================================
+       LEAD TIME GUARD
+       ------------------------------------------------------------------
+       ⚠️ Why this lives here and not in controllers/orderController.js:
+       createOrder() has the full rule set (lead times, preorder checks,
+       phone and postal validation) but it is only wired to POST /api/orders.
+       Every real order goes through THIS route instead, which wrote straight
+       to the database with Order.create() — so none of those rules have ever
+       run on a live order.
+
+       The only thing stopping a same-day order was the date picker in the
+       browser, and fulfillmentData is kept in localStorage indefinitely. A
+       customer who picked a date days ago, left the tab, and came back to pay
+       on that date sent it through unchecked. That is how order #0257 was
+       placed on 24 Oct for delivery on 24 Oct.
+
+       ORDER_LEAD_TIME_DAYS keeps this in step with the picker without a
+       deploy — change it in .env and restart.
+    ================================================================== */
+    const SG_TZ = "Asia/Singapore";
+    const LEAD_TIME_DAYS = Number(process.env.ORDER_LEAD_TIME_DAYS ?? 3);
+
+    const fDate = orderPayload?.fulfillmentDate;
+    const fTime = orderPayload?.fulfillmentTime;
+
+    if (!fDate || !fTime) {
+      return res.status(400).json({
+        message: "Please choose a collection or delivery date and time.",
+      });
+    }
+
+    const selectedSG = moment.tz(
+      `${fDate} ${fTime}`,
+      "YYYY-MM-DD HH:mm",
+      SG_TZ,
+    );
+
+    if (!selectedSG.isValid()) {
+      return res.status(400).json({
+        message: "That date and time didn't look right. Please choose again.",
+      });
+    }
+
+    const earliestSG = moment()
+      .tz(SG_TZ)
+      .add(LEAD_TIME_DAYS, "days")
+      .startOf("day");
+
+    if (selectedSG.isBefore(earliestSG)) {
+      errlog(
+        "LEAD TIME TOO SHORT — refusing order.",
+        "requested:", `${fDate} ${fTime}`,
+        "earliest:", earliestSG.format("YYYY-MM-DD"),
+      );
+
+      return res.status(400).json({
+        message: `We need at least ${LEAD_TIME_DAYS} days to prepare your order. The earliest available date is ${earliestSG.format(
+          "D MMM YYYY",
+        )} — please pick a new date and try again.`,
+      });
+    }
     log("Delivery Fee (from browser):", clientDeliveryFee);
     log("Customer Email:", orderPayload?.customer?.email);
     log("Fulfillment Type:", orderPayload?.fulfillmentType);
